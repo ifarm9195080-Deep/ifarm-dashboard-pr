@@ -631,6 +631,21 @@ button, input, select, textarea { font: inherit; }
 .dashboard-interest::before, .dashboard-interest::after { position: absolute; z-index: -1; width: 330px; height: 330px; background-repeat: no-repeat; background-size: contain; content: ''; opacity: .72; pointer-events: none; filter: drop-shadow(0 5px 10px rgb(0 0 0 / 22%)); }
 .dashboard-interest::before { bottom: -98px; left: -62px; background-image: url('/assets/who-we-are/who-we-are-leaf-bottom-left.webp'); }
 .dashboard-interest::after { right: -92px; bottom: -120px; width: 290px; height: 290px; background-image: url('/assets/who-we-are/who-we-are-leaf-top-right.webp'); }
+
+/* Keep mobile interaction targets comfortable without changing the desktop composition. */
+@media (max-width: 960px) {
+  .menu-toggle { width: 44px; height: 44px; }
+  .site-header:not(.site-header--login) .nav-link { min-height: 44px; }
+  .language-switch button { min-height: 44px; }
+}
+@media (max-width: 680px) {
+  .footer__links a, .login-footer__links a { display: inline-flex; min-height: 44px; align-items: center; }
+  .inquiry-form input, .inquiry-form select, .inquiry-form textarea,
+  .interest-form input, .login-card input, .login-field__control input { font-size: 16px; }
+}
+@media (max-width: 600px) {
+  .language-switch button { min-height: 44px; }
+}
 .dashboard-interest__card { position: relative; isolation: isolate; display: grid; grid-template-areas: "copy form"; grid-template-columns: minmax(0, 1fr) minmax(0, .96fr); align-items: center; gap: clamp(44px, 6vw, 90px); width: min(1090px, calc(100% - 48px)); min-height: 190px; padding: 10px 0; direction: ltr; }
 .dashboard-interest__copy { grid-area: copy; position: relative; z-index: 1; max-width: 590px; direction: ltr; }
 .dashboard-interest__badge { margin-bottom: 12px; }
