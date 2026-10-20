@@ -1700,9 +1700,7 @@ function ClientLoginPage() {
     password: '',
     accountId: '',
   });
-  const [errors, setErrors] = useState<
-    Partial<Record<LoginFieldName, CopyKey | undefined>>
-  >({});
+  const [errors, setErrors] = useState<Partial<Record<LoginFieldName, CopyKey | undefined>>>({});
   const [submitted, setSubmitted] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [status, setStatus] = useState('');
@@ -1927,13 +1925,11 @@ export default function App() {
     if (mode === 'restore') return;
     if (mode === 'hash' && window.location.hash) {
       requestAnimationFrame(() =>
-        document
-          .getElementById(decodeHash(window.location.hash.slice(1)))
-          ?.scrollIntoView({
-            behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
-              ? 'auto'
-              : 'smooth',
-          }),
+        document.getElementById(decodeHash(window.location.hash.slice(1)))?.scrollIntoView({
+          behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            ? 'auto'
+            : 'smooth',
+        }),
       );
     } else if (mode === 'top') window.scrollTo({ top: 0, behavior: 'auto' });
   }, [route]);
