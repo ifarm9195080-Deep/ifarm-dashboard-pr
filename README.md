@@ -1,23 +1,29 @@
 # iFarm Dashboard
 
-Architecture and implementation workspace for the iFarm Monitoring Dashboard. This repository is the first development priority; iFarm Store remains a separate product, repository, database, and authentication system.
+Frontend-only monitoring dashboard and agricultural development website. The web app lives in
+`apps/web` and uses React, TypeScript, and Vite. There is no production API in this repository.
 
-## Current stage
+## Setup
 
-Architecture planning. No application code has been started in this workspace. Review the architecture and phased plan before implementation. Do not make major architectural changes or start broad implementation until the user approves the proposed phase.
+```sh
+cd apps/web
+npm ci
+npm run dev
+```
 
-## Documents
+## Scripts
 
-- [Architecture reference](ARCHITECTURE.md): agreed requirements, selected technologies, proposals, and unresolved decisions.
-- [Initial implementation plan](IMPLEMENTATION_PLAN.md): suggested discovery and foundation phases.
-- [Codex project instructions](AGENTS.md): constraints for future work in this directory.
+- `npm run typecheck` — TypeScript project check
+- `npm run format` / `npm run format:check` — format or check source formatting
+- `npm run build` — typecheck and create the production bundle
 
-## Initial Dashboard stack
+## Structure
 
-- Web: React, Vite, TypeScript
-- Mobile: React Native, Expo
-- API: NestJS, TypeScript, modular monolith
-- Database: dedicated Supabase PostgreSQL project; custom NestJS JWT authentication
-- IoT: MQTT over secure connections, Eclipse Mosquitto planned
+- `apps/web/src` — application and styles
+- `apps/web/public/assets` — published images
+- `apps/web/source-assets` — retained source images
+- `docs` — architecture, planning, review, and deployment notes
 
-The architecture document is the source of truth. Items marked proposed or unresolved are not approvals.
+`VITE_API_BASE_URL` is reserved for a future API connection. Do not add secrets or credentials to
+frontend environment variables. To validate the current frontend, run `npm run typecheck && npm run
+build` from `apps/web`.
