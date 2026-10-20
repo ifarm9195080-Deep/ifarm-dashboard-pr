@@ -452,7 +452,7 @@ function useI18n() {
 }
 
 type AppLinkProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'href'> & { href: string };
-function AppLink({ href, onClick, target, ...props }: AppLinkProps) {
+function AppLink({ href, onClick, target, children, ...props }: AppLinkProps) {
   const { navigate } = useI18n();
   function handleClick(event: MouseEvent<HTMLAnchorElement>) {
     onClick?.(event);
@@ -483,7 +483,11 @@ function AppLink({ href, onClick, target, ...props }: AppLinkProps) {
     event.preventDefault();
     navigate(`${destination.pathname}${destination.search}${destination.hash}`);
   }
-  return <a href={href} target={target} {...props} onClick={handleClick} />;
+  return (
+    <a href={href} target={target} {...props} onClick={handleClick}>
+      {children}
+    </a>
+  );
 }
 
 type IconName =
@@ -718,7 +722,9 @@ function LanguageSwitch() {
         type="button"
         aria-pressed={locale === 'en'}
         className={locale === 'en' ? 'is-selected' : ''}
-        onClick={() => setLocale('en')}
+        onClick={() => {
+          setLocale('en');
+        }}
       >
         English
       </button>
@@ -726,7 +732,9 @@ function LanguageSwitch() {
         type="button"
         aria-pressed={locale === 'ar'}
         className={locale === 'ar' ? 'is-selected' : ''}
-        onClick={() => setLocale('ar')}
+        onClick={() => {
+          setLocale('ar');
+        }}
       >
         العربية
       </button>
@@ -753,7 +761,9 @@ function Navbar({
             type="button"
             aria-label={t('toggleNav')}
             aria-expanded={open}
-            onClick={() => setOpen(!open)}
+            onClick={() => {
+              setOpen(!open);
+            }}
           >
             <Icon name="menu" size={21} />
           </button>
@@ -1429,11 +1439,13 @@ function ContactSection() {
         aria-invalid={Boolean(errors[name])}
         aria-describedby={errors[name] ? `inquiry-${name}-error` : undefined}
         required
-        onChange={(event) => updateField(name, event.target.value)}
+        onChange={(event) => {
+          updateField(name, event.target.value);
+        }}
       />
       {errors[name] && (
         <span className="inquiry-field__error" id={`inquiry-${name}-error`}>
-          {t(errors[name]!)}
+          {t(errors[name])}
         </span>
       )}
     </label>
@@ -1542,7 +1554,8 @@ function DashboardWelcomePage() {
   const [emailError, setEmailError] = useState<CopyKey | null>(null);
   function handleInterest(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const email = new FormData(event.currentTarget).get('email')?.toString().trim() ?? '';
+    const emailValue = new FormData(event.currentTarget).get('email');
+    const email = typeof emailValue === 'string' ? emailValue.trim() : '';
     if (!email) {
       setEmailError('emailRequired');
       setInterestStatus('');
@@ -1782,7 +1795,9 @@ function ClientLoginPage() {
                   aria-invalid={Boolean(errors.username)}
                   aria-describedby={errors.username ? 'login-username-error' : undefined}
                   required
-                  onChange={(event) => handleChange('username', event.target.value)}
+                  onChange={(event) => {
+                    handleChange('username', event.target.value);
+                  }}
                 />
               </span>
               {renderFieldError('username')}
@@ -1806,14 +1821,18 @@ function ClientLoginPage() {
                   aria-invalid={Boolean(errors.password)}
                   aria-describedby={errors.password ? 'login-password-error' : undefined}
                   required
-                  onChange={(event) => handleChange('password', event.target.value)}
+                  onChange={(event) => {
+                    handleChange('password', event.target.value);
+                  }}
                 />
                 <button
                   className="password-toggle"
                   type="button"
                   aria-label={passwordVisible ? t('hidePassword') : t('showPassword')}
                   aria-pressed={passwordVisible}
-                  onClick={() => setPasswordVisible((visible) => !visible)}
+                  onClick={() => {
+                    setPasswordVisible((visible) => !visible);
+                  }}
                 >
                   <Icon name={passwordVisible ? 'eyeOff' : 'eye'} size={18} />
                 </button>
@@ -1839,7 +1858,9 @@ function ClientLoginPage() {
                   aria-invalid={Boolean(errors.accountId)}
                   aria-describedby={errors.accountId ? 'login-accountId-error' : undefined}
                   required
-                  onChange={(event) => handleChange('accountId', event.target.value)}
+                  onChange={(event) => {
+                    handleChange('accountId', event.target.value);
+                  }}
                 />
               </span>
               {renderFieldError('accountId')}
@@ -1868,7 +1889,9 @@ export default function App() {
   const [route, setRoute] = useState(() => window.location.pathname.replace(/\/$/, '') || '/');
   const routeScrollMode = useRef<'top' | 'hash' | 'restore' | null>(null);
   const t = (key: CopyKey) => copy[locale][key];
-  const setLocale = (next: Locale) => setLocaleState(next);
+  const setLocale = (next: Locale) => {
+    setLocaleState(next);
+  };
   const navigate = (to: string) => {
     const destination = new URL(to, window.location.href);
     if (destination.origin !== window.location.origin) return;
@@ -1900,7 +1923,9 @@ export default function App() {
       setRoute(window.location.pathname.replace(/\/$/, '') || '/');
     };
     window.addEventListener('popstate', onPopState);
-    return () => window.removeEventListener('popstate', onPopState);
+    return () => {
+      window.removeEventListener('popstate', onPopState);
+    };
   }, []);
 
   useEffect(() => {
