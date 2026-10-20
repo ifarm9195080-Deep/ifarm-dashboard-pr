@@ -1175,6 +1175,17 @@ textarea {
   }
 }
 
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid #0c402e;
+  outline-offset: 3px;
+}
+
+@media (forced-colors: active) {
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline-color: Highlight;
+  }
+}
+
 @media (max-width: 960px) {
   .wrap {
     width: min(100% - 40px, 760px);
