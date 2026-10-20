@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  build: { sourcemap: false },
   // Keep the development server local by default; share the production preview via an approved tunnel.
   server: { host: '127.0.0.1' },
 });

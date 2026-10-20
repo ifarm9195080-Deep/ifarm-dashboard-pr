@@ -24,6 +24,14 @@ function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
+function decodeHash(hash: string) {
+  try {
+    return decodeURIComponent(hash);
+  } catch {
+    return '';
+  }
+}
+
 function readSavedLocale(): Locale {
   try {
     return window.localStorage.getItem('ifarm-locale') === 'ar' ? 'ar' : 'en';
@@ -1495,7 +1503,7 @@ function Footer() {
           </nav>
           <div className="footer__contact">
             <a href="tel:+203227552330">{t('phone')}</a>
-            <a href="https://www.ifarm.com" target="_blank" rel="noreferrer">
+            <a href="https://www.ifarm.com" target="_blank" rel="noopener noreferrer">
               {t('website')}
             </a>
           </div>
@@ -1872,7 +1880,7 @@ export default function App() {
       window.history.pushState(null, '', nextUrl);
     if (nextRoute === route) {
       const target = destination.hash
-        ? document.getElementById(decodeURIComponent(destination.hash.slice(1)))
+        ? document.getElementById(decodeHash(destination.hash.slice(1)))
         : null;
       if (target)
         target.scrollIntoView({
@@ -1920,7 +1928,7 @@ export default function App() {
     if (mode === 'hash' && window.location.hash) {
       requestAnimationFrame(() =>
         document
-          .getElementById(decodeURIComponent(window.location.hash.slice(1)))
+          .getElementById(decodeHash(window.location.hash.slice(1)))
           ?.scrollIntoView({
             behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
               ? 'auto'
