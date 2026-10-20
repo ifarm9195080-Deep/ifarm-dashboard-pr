@@ -1692,7 +1692,9 @@ function ClientLoginPage() {
     password: '',
     accountId: '',
   });
-  const [errors, setErrors] = useState<Partial<Record<LoginFieldName, CopyKey>>>({});
+  const [errors, setErrors] = useState<
+    Partial<Record<LoginFieldName, CopyKey | undefined>>
+  >({});
   const [submitted, setSubmitted] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [status, setStatus] = useState('');
@@ -1716,7 +1718,7 @@ function ClientLoginPage() {
   function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitted(true);
-    const nextErrors: Partial<Record<LoginFieldName, CopyKey>> = {
+    const nextErrors: Partial<Record<LoginFieldName, CopyKey | undefined>> = {
       username: validateField('username', values.username),
       password: validateField('password', values.password),
       accountId: validateField('accountId', values.accountId),

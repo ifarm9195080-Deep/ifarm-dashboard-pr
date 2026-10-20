@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "tsc -b",
+    "format": "prettier --write 'src/**/*.{ts,tsx,css}' '*.json' '*.ts' '*.html'",
+    "format:check": "prettier --check 'src/**/*.{ts,tsx,css}' '*.json' '*.ts' '*.html'"
   },
   "dependencies": {
     "react": "^19.1.0",
