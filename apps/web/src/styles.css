@@ -8,6 +8,9 @@
   --color-sage-100: #eff4e7;
   --color-sage-200: #e1e8dc;
   --color-sage-500: #758278;
+  --color-text-accessible: #59665c;
+  --color-olive-accessible: #4e6939;
+  --color-olive-accessible-on-lime: #536055;
   --color-sage-300: #b3cabb;
   --font-sans: 'Arimo', Arial, sans-serif;
   --radius-card: 14px;
@@ -1186,6 +1189,41 @@ textarea {
   }
 }
 
+.section-intro,
+.service-card p,
+.consultation-copy > p,
+.step p,
+.footer__brand p,
+.footer__bottom {
+  color: var(--color-text-accessible);
+}
+
+.service-card__note {
+  color: var(--color-olive-accessible);
+}
+
+.step > span {
+  color: var(--color-olive-accessible);
+}
+
+.contact-copy > p {
+  color: var(--color-olive-accessible-on-lime);
+}
+
+.dashboard-preview__demo,
+.dashboard-preview__heading p,
+.dashboard-preview__metric-info small,
+.dashboard-preview__times,
+.dashboard-preview__activity-copy > span,
+.dashboard-preview__activity-copy small {
+  color: var(--color-text-accessible);
+}
+
+.language-switch button:not(.is-selected),
+.placeholder-card p {
+  color: var(--color-text-accessible);
+}
+
 @media (max-width: 960px) {
   .wrap {
     width: min(100% - 40px, 760px);
@@ -1616,7 +1654,7 @@ textarea {
   font-weight: 600;
 }
 .back-to-ifarm span {
-  color: #64804b;
+  color: var(--color-olive-accessible);
   font-size: 19px;
   line-height: 1;
 }
@@ -3675,4 +3713,13 @@ textarea {
     height: 165px;
     opacity: 0.48;
   }
+}
+
+.dashboard-preview__demo,
+.dashboard-preview__heading p,
+.dashboard-preview__metric-info small,
+.dashboard-preview__times,
+.dashboard-preview__activity-copy > span,
+.dashboard-preview__activity-copy small {
+  color: var(--color-text-accessible);
 }

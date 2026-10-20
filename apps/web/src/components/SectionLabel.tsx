@@ -7,11 +7,7 @@ type SectionLabelProps = {
 };
 
 /** A compact introductory label shared by sections across the public site. */
-export default function SectionLabel({
-  children,
-  variant = 'light',
-  className = '',
-}: SectionLabelProps) {
+export function SectionLabel({ children, variant = 'light', className = '' }: SectionLabelProps) {
   return (
     <span className={`section-label section-label--${variant}${className ? ` ${className}` : ''}`}>
       <svg

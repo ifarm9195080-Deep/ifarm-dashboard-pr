@@ -1,28 +1,22 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-  type AnchorHTMLAttributes,
-  type FormEvent,
-  type MouseEvent,
-  type ReactNode,
-} from 'react';
-import SectionLabel from './components/SectionLabel';
-
-type Locale = 'en' | 'ar';
-type CopyKey = keyof typeof copy.en;
+import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { NavigationType, useLocation, useNavigate, useNavigationType } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { SectionLabel } from './components/SectionLabel';
+import { AppLink } from './components/ui/AppLink';
+import { type CopyKey, type Locale } from './i18n';
+import { I18nProvider, translate, useI18n } from './i18n/I18nProvider';
+import { useAuth } from './features/auth/AuthProvider';
+import { getSafeRedirect } from './shared/utils/safeRedirect';
+import { ROUTES, SITE_DETAILS } from './config/site';
+import { isValidEmail } from './shared/validation/isValidEmail';
 type NavItem = {
   id: 'home' | 'dashboard' | 'store' | 'ai';
   href: string;
   label: CopyKey;
   soon?: boolean;
 };
-
-function isValidEmail(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
-}
 
 function decodeHash(hash: string) {
   try {
@@ -48,447 +42,12 @@ function saveLocale(locale: Locale) {
   }
 }
 
-const copy = {
-  en: {
-    home: 'Home',
-    dashboard: 'Dashboard',
-    store: 'Store',
-    ai: 'AI',
-    soon: 'Soon',
-    comingSoonTitle: 'Coming soon',
-    comingSoonText: 'We are preparing this iFarm experience. Check back soon for updates.',
-    backHome: 'Back to Home',
-    contactUs: 'Contact Us',
-    toggleLanguage: 'العربية',
-    mainNav: 'Main navigation',
-    toggleNav: 'Toggle navigation',
-    footerNav: 'Footer navigation',
-    languageLabel: 'Language',
-    backToIFarm: 'Back to iFarm',
-    heroLabel: 'iFarm Agricultural Development',
-    heroLine1: 'We plan your land,',
-    heroLine2: 'and grow its future.',
-    heroText:
-      'From land assessment to harvest marketing, we guide you with integrated agricultural solutions combining field expertise and smart technology.',
-    freeConsultation: 'Start with a Free Consultation',
-    exploreServices: 'Explore Our Services',
-    rooted: 'Rooted in knowledge',
-    commitment1: 'Better decisions. Smarter farming.',
-    commitment2: 'From field to market',
-    commitment3: 'Technology for farmers',
-    commitment4: 'Knowledge-driven planning',
-    whoWeAre: 'Who We Are',
-    aboutTitle: 'Practical insight for better farm decisions.',
-    aboutText:
-      'iFarm works alongside landowners and farmers to understand local conditions, clarify priorities, and support informed decisions throughout each project.',
-    aboutAssessment: 'Land assessment',
-    aboutAssessmentText: 'Understand soil, water, and your land’s potential.',
-    aboutPlanning: 'Crop and project planning',
-    aboutPlanningText: 'Choose suitable crops and plan a clear development path.',
-    aboutGuidance: 'Ongoing agricultural guidance',
-    aboutGuidanceText: 'Get practical support as your project grows.',
-    services: 'Our services',
-    servicesTitle: 'Integrated solutions, from field to market.',
-    servicesIntro:
-      'Choose the right starting point for your project, and we’ll help you identify the next step.',
-    service1: 'Feasibility Studies & Planning',
-    service1Text: 'Project study, farm design, and a step-by-step implementation plan.',
-    service1Note: 'Turn ideas into action',
-    service2: 'Crops & Seeds',
-    service2Text: "Selecting suitable crops, varieties, and seeds for your land's conditions.",
-    service2Note: 'A selection that fits your land',
-    service3: 'Land Assessment',
-    service3Text:
-      'Understanding soil, water, and land suitability before making an investment decision.',
-    service3Note: 'Start from a solid foundation',
-    service4: 'Marketing & Export',
-    service4Text:
-      'Planning harvest marketing and preparing it for commercial and export opportunities.',
-    service4Note: 'Connect your harvest to the market',
-    service5: 'Farm Management',
-    service5Text:
-      'Organizing agricultural operations and monitoring production with data-driven decisions.',
-    service5Note: 'From planning to operations',
-    service6: 'Smart Irrigation',
-    service6Text: 'Planning irrigation networks and employing technologies to monitor farm needs.',
-    service6Note: 'Resources managed with awareness',
-    consultationEyebrow: 'Integrated agricultural consultation',
-    consultationTitle: 'Better farming starts with understanding your land.',
-    consultationText:
-      'Tell us about your land and monitoring needs. The iFarm team can help you explore the right starting point.',
-    benefit1: 'Land and soil assessment',
-    benefit2: 'Crop and project planning',
-    benefit3: 'Ongoing agricultural guidance',
-    advisor: 'Talk to an agricultural advisor',
-    smartSystem: 'iFarm Smart System',
-    smartTitle: 'Your farm, closer than ever. With the iFarm Smart System.',
-    smartText:
-      'Stay connected to your farm with a clear view of changing conditions and the information that supports everyday decisions.',
-    smartBenefit1: 'Clearer visibility into farm data',
-    smartBenefit2: 'Planning and monitoring in one place',
-    smartBenefit3: 'Smart tools to support agricultural decisions',
-    discoverSystem: 'Discover the New System',
-    howStart: 'How do we start',
-    stepsTitle: "Your first step doesn't need to be complicated.",
-    step1: 'Tell us about your land',
-    step1Text: "Share your land's location, project stage, and what you need.",
-    step2: 'We understand your needs together',
-    step2Text: 'We discuss your goals and identify the information needed to evaluate the project.',
-    step3: 'We map the next step',
-    step3Text: 'We propose the right service path and a plan for starting your project.',
-    getInTouch: 'Contact Us',
-    contactTitle: "Your land has potential. Let's discover it together.",
-    contactText:
-      'Do you have land or an agricultural project idea? Get in touch and let us help you choose the right starting point.',
-    phone: '+20 3 2275 5233',
-    instagram: '@ifarm_wm',
-    website: 'www.ifarm.com',
-    contactTeam: 'Contact the iFarm team',
-    socialFollow: 'Follow iFarm',
-    footerTagline: 'Your agricultural development partner',
-    footerServices: 'Services',
-    footerContact: 'Contact',
-    companyName: 'iFarm Agricultural Development',
-    copyright: '© 2026 iFarm. All rights reserved.',
-    firstName: 'First Name',
-    firstNamePlaceholder: 'Your first name',
-    lastName: 'Last Name',
-    lastNamePlaceholder: 'Your last name',
-    phoneNumber: 'Phone Number',
-    phonePlaceholder: '+20 1XX XXX XXXX',
-    emailAddress: 'Email Address',
-    contactEmailPlaceholder: 'name@example.com',
-    howHelp: 'How can we help you?',
-    messagePlaceholder: 'Tell us about your farm or project...',
-    sendInquiry: 'Send inquiry',
-    firstNameRequired: 'First name is required.',
-    lastNameRequired: 'Last name is required.',
-    phoneRequired: 'Phone number is required.',
-    emailRequired: 'Email address is required.',
-    emailInvalid: 'Please enter a valid email address.',
-    inquiryNotConnected:
-      'The inquiry form is not connected yet. Your message was not sent or stored.',
-    welcomeEyebrow: 'iFarm Smart System',
-    welcomeTitle: 'Welcome to intelligent farm monitoring.',
-    welcomeText:
-      'Monitor your farm, follow sensor readings, and understand changing conditions through one connected platform built to support better agricultural decisions.',
-    welcomeFeature1: 'See farm conditions in one place',
-    welcomeFeature2: 'Follow sensor readings and alerts',
-    welcomeFeature3: 'Make informed decisions with your farm data',
-    dashboardHeroLine1: 'Your Farm.',
-    dashboardHeroLine2: 'Connected to Nature.',
-    dashboardHeroLine3: 'Powered by Intelligence.',
-    dashboardHeroText:
-      'Monitor your farm in real time with smart sensors, live cameras, detailed reports, and easy-to-use settings — all in one place.',
-    previewTitle: 'Farm Overview',
-    previewSubtitle: 'Real-time data from your farm',
-    previewAllFarms: 'All Farms',
-    previewDemo: 'Illustrative preview · Sample values',
-    previewMenu: 'Dashboard preview menu',
-    previewSensors: 'Sensors',
-    previewCameras: 'Cameras',
-    previewReports: 'Reports',
-    previewSettings: 'Settings',
-    previewActiveSensors: 'Active Sensors',
-    previewCamerasOnline: 'Cameras Online',
-    previewAvgTemperature: 'Avg. Temperature',
-    previewAvgMoisture: 'Avg. Soil Moisture',
-    previewFieldConditions: 'Field Conditions',
-    previewSoilMoisture: 'Soil Moisture',
-    previewTemperature: 'Temperature',
-    previewRecentActivity: 'Recent Activity',
-    previewSensorThree: 'Sensor #3',
-    previewMoistureUpdate: 'Soil moisture updated',
-    previewTenMinutes: '10 min ago',
-    previewCameraOne: 'Camera #1',
-    previewMotion: 'Motion detected',
-    previewTwentyFiveMinutes: '25 min ago',
-    previewSensorSeven: 'Sensor #7',
-    previewBatteryLow: 'Battery level low',
-    previewOneHour: '1 hour ago',
-    previewChartLabel:
-      'Illustrative field conditions chart showing soil moisture and temperature over a day',
-    interestedLabel: 'Interested in iFarm?',
-    interestedTitle: 'Bring smarter monitoring to your farm.',
-    interestedText:
-      'Leave your email address and our team can follow up when the iFarm Smart System is ready for your farm.',
-    emailLabel: 'Email address',
-    emailPlaceholder: 'you@example.com',
-    joinInterest: 'Register your interest',
-    interestNotConnected: 'This form is not connected yet. Your email was not sent or stored.',
-    existingLabel: 'Already an iFarm client?',
-    existingTitle: 'Your farm workspace is ready when you are.',
-    existingText:
-      'Registered iFarm Smart System clients can sign in to access their private farm monitoring dashboard.',
-    clientSignIn: 'Client Sign In',
-    backToDashboard: 'Back to Dashboard',
-    loginEyebrow: 'Client access',
-    loginTitle: 'Sign in to your iFarm workspace.',
-    loginText: 'Use the credentials provided for your iFarm Smart System account.',
-    loginHeading: 'Sign in',
-    loginSubtitle: 'to your iFarm Dashboard',
-    username: 'Username',
-    usernamePlaceholder: 'Enter your username',
-    password: 'Password',
-    passwordPlaceholder: 'Enter your password',
-    accountId: 'Account ID',
-    accountIdPlaceholder: 'Enter your account ID',
-    signIn: 'Sign In',
-    usernameRequired: 'Username is required.',
-    passwordRequired: 'Password is required.',
-    accountIdRequired: 'Account ID is required.',
-    accountIdInvalid: 'Please enter a valid Account ID.',
-    loginNotConnected: 'Authentication is not connected yet. You have not been signed in.',
-    showPassword: 'Show password',
-    hidePassword: 'Hide password',
-  },
-  ar: {
-    home: 'الرئيسية',
-    dashboard: 'لوحة التحكم',
-    store: 'المتجر',
-    ai: 'الذكاء الاصطناعي',
-    soon: 'قريبًا',
-    comingSoonTitle: 'قريبًا',
-    comingSoonText: 'نعمل على تجهيز هذه التجربة من آي فارم. تابعنا لمعرفة آخر المستجدات.',
-    backHome: 'العودة إلى الرئيسية',
-    contactUs: 'تواصل معنا',
-    toggleLanguage: 'English',
-    mainNav: 'التنقل الرئيسي',
-    toggleNav: 'فتح أو إغلاق قائمة التنقل',
-    footerNav: 'روابط التذييل',
-    languageLabel: 'اللغة',
-    backToIFarm: 'العودة إلى آي فارم',
-    heroLabel: 'آي فارم للتنمية الزراعية',
-    heroLine1: 'نخطط لأرضك،',
-    heroLine2: 'وننمي مستقبلها.',
-    heroText:
-      'من تقييم الأرض إلى تسويق المحصول، نرشدك بحلول زراعية متكاملة تجمع بين الخبرة الميدانية والتقنيات الذكية.',
-    freeConsultation: 'ابدأ باستشارة مجانية',
-    exploreServices: 'اكتشف خدماتنا',
-    rooted: 'جذورنا في المعرفة',
-    commitment1: 'قرارات أفضل. زراعة أذكى.',
-    commitment2: 'من الحقل إلى السوق',
-    commitment3: 'تقنية لخدمة المزارعين',
-    commitment4: 'تخطيط قائم على المعرفة',
-    whoWeAre: 'من نحن',
-    aboutTitle: 'خبرة عملية لقرارات زراعية أوضح.',
-    aboutText:
-      'نعمل مع ملاك الأراضي والمزارعين لفهم ظروف الأرض وتحديد الأولويات، بما يساعدهم على اتخاذ قرارات مدروسة لمشروعاتهم الزراعية.',
-    aboutAssessment: 'تقييم الأراضي',
-    aboutAssessmentText: 'تعرّف على التربة والمياه وإمكانات أرضك.',
-    aboutPlanning: 'تخطيط المحاصيل والمشروع',
-    aboutPlanningText: 'اختر المحاصيل المناسبة وحدد مسارًا واضحًا للتطوير.',
-    aboutGuidance: 'إرشاد زراعي مستمر',
-    aboutGuidanceText: 'احصل على دعم عملي مع نمو مشروعك.',
-    services: 'خدماتنا',
-    servicesTitle: 'حلول متكاملة من الحقل إلى السوق.',
-    servicesIntro: 'اختر نقطة البداية المناسبة لمشروعك، وسنساعدك في تحديد الخطوة التالية.',
-    service1: 'دراسات الجدوى والتخطيط',
-    service1Text: 'دراسة المشروع وتصميم المزرعة وخطة تنفيذ خطوة بخطوة.',
-    service1Note: 'حوّل الأفكار إلى خطوات',
-    service2: 'المحاصيل والبذور',
-    service2Text: 'اختيار المحاصيل والأصناف والبذور المناسبة لظروف أرضك.',
-    service2Note: 'اختيار يناسب أرضك',
-    service3: 'تقييم الأراضي',
-    service3Text: 'فهم التربة والمياه ومدى ملاءمة الأرض قبل اتخاذ قرار الاستثمار.',
-    service3Note: 'ابدأ بأساس واضح',
-    service4: 'التسويق والتصدير',
-    service4Text: 'تخطيط تسويق المحصول والاستعداد للفرص التجارية والتصديرية.',
-    service4Note: 'اربط محصولك بالسوق',
-    service5: 'إدارة المزارع',
-    service5Text: 'تنظيم العمليات الزراعية ومتابعة الإنتاج بقرارات قائمة على البيانات.',
-    service5Note: 'من التخطيط إلى التشغيل',
-    service6: 'الري الذكي',
-    service6Text: 'تخطيط شبكات الري واستخدام التقنيات لمتابعة احتياجات المزرعة.',
-    service6Note: 'إدارة واعية للموارد',
-    consultationEyebrow: 'استشارات زراعية متكاملة',
-    consultationTitle: 'الزراعة الأفضل تبدأ بفهم أرضك.',
-    consultationText:
-      'أخبرنا عن أرضك واحتياجاتك للمتابعة. يساعدك فريق آي فارم في اكتشاف نقطة البداية المناسبة.',
-    benefit1: 'تقييم الأرض والتربة',
-    benefit2: 'تخطيط المحاصيل والمشروع',
-    benefit3: 'إرشاد زراعي مستمر',
-    advisor: 'تحدث إلى مستشار زراعي',
-    smartSystem: 'نظام آي فارم الذكي',
-    smartTitle: 'مزرعتك أقرب إليك من أي وقت مضى.',
-    smartText:
-      'ابقَ على تواصل مع مزرعتك، وتابع تغير ظروفها والمعلومات التي تساعدك في قراراتك اليومية.',
-    smartBenefit1: 'رؤية أوضح لبيانات المزرعة',
-    smartBenefit2: 'التخطيط والمتابعة في مكان واحد',
-    smartBenefit3: 'أدوات ذكية تدعم قراراتك الزراعية',
-    discoverSystem: 'اكتشف النظام الجديد',
-    howStart: 'كيف نبدأ؟',
-    stepsTitle: 'خطوتك الأولى يمكن أن تكون بسيطة.',
-    step1: 'أخبرنا عن أرضك',
-    step1Text: 'شاركنا موقع أرضك ومرحلة المشروع وما تحتاج إليه.',
-    step2: 'نفهم احتياجاتك معًا',
-    step2Text: 'نناقش أهدافك ونحدد المعلومات اللازمة لتقييم المشروع.',
-    step3: 'نحدد الخطوة التالية',
-    step3Text: 'نقترح مسار الخدمة المناسب وخطة بدء مشروعك.',
-    getInTouch: 'تواصل معنا',
-    contactTitle: 'أرضك لديها إمكانات. دعنا نكتشفها معًا.',
-    contactText:
-      'هل لديك أرض أو فكرة لمشروع زراعي؟ تواصل معنا لنساعدك في اختيار نقطة البداية المناسبة.',
-    phone: '+20 3 2275 5233',
-    instagram: '@ifarm_wm',
-    website: 'www.ifarm.com',
-    contactTeam: 'تواصل مع فريق آي فارم',
-    socialFollow: 'تابع آي فارم',
-    footerTagline: 'شريكك في التنمية الزراعية',
-    footerServices: 'الخدمات',
-    footerContact: 'تواصل معنا',
-    companyName: 'آي فارم للتنمية الزراعية',
-    copyright: '© 2026 آي فارم. جميع الحقوق محفوظة.',
-    firstName: 'الاسم الأول',
-    firstNamePlaceholder: 'اكتب اسمك الأول',
-    lastName: 'اسم العائلة',
-    lastNamePlaceholder: 'اكتب اسم العائلة',
-    phoneNumber: 'رقم الهاتف',
-    phonePlaceholder: '+20 1XX XXX XXXX',
-    emailAddress: 'البريد الإلكتروني',
-    contactEmailPlaceholder: 'name@example.com',
-    howHelp: 'كيف يمكننا مساعدتك؟',
-    messagePlaceholder: 'أخبرنا عن مزرعتك أو مشروعك...',
-    sendInquiry: 'إرسال الاستفسار',
-    firstNameRequired: 'الاسم الأول مطلوب.',
-    lastNameRequired: 'اسم العائلة مطلوب.',
-    phoneRequired: 'رقم الهاتف مطلوب.',
-    emailRequired: 'البريد الإلكتروني مطلوب.',
-    emailInvalid: 'يرجى إدخال بريد إلكتروني صالح.',
-    inquiryNotConnected: 'نموذج الاستفسار غير متصل حاليًا. لم يتم إرسال رسالتك أو حفظها.',
-    welcomeEyebrow: 'نظام آي فارم الذكي',
-    welcomeTitle: 'مرحبًا بك في المراقبة الزراعية الذكية.',
-    welcomeText:
-      'تابع مزرعتك وقراءات المستشعرات والتغيرات في الظروف عبر منصة مترابطة تساعدك على اتخاذ قرارات زراعية أفضل.',
-    welcomeFeature1: 'تابع ظروف المزرعة في مكان واحد',
-    welcomeFeature2: 'راقب قراءات المستشعرات والتنبيهات',
-    welcomeFeature3: 'اتخذ قرارات مدروسة باستخدام بيانات مزرعتك',
-    dashboardHeroLine1: 'مزرعتك.',
-    dashboardHeroLine2: 'متصلة بالطبيعة.',
-    dashboardHeroLine3: 'مدعومة بالذكاء.',
-    dashboardHeroText:
-      'تابع مزرعتك لحظة بلحظة عبر مستشعرات ذكية وكاميرات مباشرة وتقارير مفصلة وإعدادات سهلة الاستخدام، كل ذلك في مكان واحد.',
-    previewTitle: 'نظرة عامة على المزرعة',
-    previewSubtitle: 'بيانات مباشرة من مزرعتك',
-    previewAllFarms: 'كل المزارع',
-    previewDemo: 'واجهة توضيحية · بيانات تجريبية',
-    previewMenu: 'قائمة معاينة لوحة المتابعة',
-    previewSensors: 'المستشعرات',
-    previewCameras: 'الكاميرات',
-    previewReports: 'التقارير',
-    previewSettings: 'الإعدادات',
-    previewActiveSensors: 'مستشعر نشط',
-    previewCamerasOnline: 'كاميرات متصلة',
-    previewAvgTemperature: 'متوسط الحرارة',
-    previewAvgMoisture: 'متوسط رطوبة التربة',
-    previewFieldConditions: 'ظروف الحقل',
-    previewSoilMoisture: 'رطوبة التربة',
-    previewTemperature: 'الحرارة',
-    previewRecentActivity: 'النشاط الأخير',
-    previewSensorThree: 'المستشعر ٣',
-    previewMoistureUpdate: 'تم تحديث رطوبة التربة',
-    previewTenMinutes: 'منذ ١٠ دقائق',
-    previewCameraOne: 'الكاميرا ١',
-    previewMotion: 'تم رصد حركة',
-    previewTwentyFiveMinutes: 'منذ ٢٥ دقيقة',
-    previewSensorSeven: 'المستشعر ٧',
-    previewBatteryLow: 'مستوى البطارية منخفض',
-    previewOneHour: 'منذ ساعة',
-    previewChartLabel: 'رسم توضيحي لظروف الحقل يبيّن رطوبة التربة والحرارة على مدار اليوم',
-    interestedLabel: 'مهتم بنظام آي فارم؟',
-    interestedTitle: 'اجعل متابعة مزرعتك أكثر ذكاءً.',
-    interestedText:
-      'اترك بريدك الإلكتروني ليتمكن فريقنا من التواصل معك عند توفر نظام آي فارم الذكي لمزرعتك.',
-    emailLabel: 'البريد الإلكتروني',
-    emailPlaceholder: 'name@example.com',
-    joinInterest: 'سجل اهتمامك',
-    interestNotConnected: 'هذا النموذج غير متصل حاليًا. لم يتم إرسال بريدك أو حفظه.',
-    existingLabel: 'هل أنت من عملاء آي فارم؟',
-    existingTitle: 'مساحة متابعة مزرعتك بانتظارك.',
-    existingText:
-      'يمكن لعملاء نظام آي فارم الذكي المسجلين تسجيل الدخول إلى لوحة المتابعة الخاصة بمزرعتهم.',
-    clientSignIn: 'تسجيل دخول العميل',
-    backToDashboard: 'العودة إلى صفحة النظام',
-    loginEyebrow: 'دخول العملاء',
-    loginTitle: 'سجل الدخول إلى مساحة آي فارم.',
-    loginText: 'استخدم بيانات الدخول الخاصة بحساب نظام آي فارم الذكي.',
-    loginHeading: 'تسجيل الدخول',
-    loginSubtitle: 'إلى لوحة آي فارم',
-    username: 'اسم المستخدم',
-    usernamePlaceholder: 'أدخل اسم المستخدم',
-    password: 'كلمة المرور',
-    passwordPlaceholder: 'أدخل كلمة المرور',
-    accountId: 'معرّف الحساب',
-    accountIdPlaceholder: 'أدخل معرّف الحساب',
-    signIn: 'تسجيل الدخول',
-    usernameRequired: 'اسم المستخدم مطلوب.',
-    passwordRequired: 'كلمة المرور مطلوبة.',
-    accountIdRequired: 'معرّف الحساب مطلوب.',
-    accountIdInvalid: 'يرجى إدخال معرّف حساب صالح.',
-    loginNotConnected: 'المصادقة غير متصلة حاليًا. لم يتم تسجيل دخولك.',
-    showPassword: 'إظهار كلمة المرور',
-    hidePassword: 'إخفاء كلمة المرور',
-  },
-} satisfies Record<Locale, Record<string, string>>;
-
 const navItems: NavItem[] = [
-  { id: 'home', href: '/', label: 'home' },
-  { id: 'dashboard', href: '/dashboard', label: 'dashboard' },
-  { id: 'store', href: '/store', label: 'store', soon: true },
-  { id: 'ai', href: '/ai', label: 'ai', soon: true },
+  { id: 'home', href: ROUTES.home, label: 'home' },
+  { id: 'dashboard', href: ROUTES.dashboard, label: 'dashboard' },
+  { id: 'store', href: ROUTES.store, label: 'store', soon: true },
+  { id: 'ai', href: ROUTES.ai, label: 'ai', soon: true },
 ];
-
-type I18nValue = {
-  locale: Locale;
-  setLocale: (locale: Locale) => void;
-  t: (key: CopyKey) => string;
-  navigate: (to: string) => void;
-};
-const I18nContext = createContext<I18nValue | null>(null);
-function useI18n() {
-  const value = useContext(I18nContext);
-  if (!value) throw new Error('useI18n must be used inside I18nContext');
-  return value;
-}
-
-type AppLinkProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'href'> & { href: string };
-function AppLink({ href, onClick, target, children, ...props }: AppLinkProps) {
-  const { navigate } = useI18n();
-  function handleClick(event: MouseEvent<HTMLAnchorElement>) {
-    onClick?.(event);
-    if (event.defaultPrevented) return;
-    let destination: URL;
-    try {
-      destination = new URL(href, window.location.href);
-    } catch {
-      event.preventDefault();
-      return;
-    }
-    if (destination.protocol !== 'http:' && destination.protocol !== 'https:') {
-      event.preventDefault();
-      return;
-    }
-    if (
-      event.button !== 0 ||
-      event.metaKey ||
-      event.ctrlKey ||
-      event.shiftKey ||
-      event.altKey ||
-      target === '_blank' ||
-      props.download !== undefined
-    )
-      return;
-    if (href.startsWith('#')) return;
-    if (destination.origin !== window.location.origin) return;
-    event.preventDefault();
-    navigate(`${destination.pathname}${destination.search}${destination.hash}`);
-  }
-  return (
-    <a href={href} target={target} {...props} onClick={handleClick}>
-      {children}
-    </a>
-  );
-}
 
 type IconName =
   | 'arrow'
@@ -786,7 +345,6 @@ function Navbar({
                     className={`nav-link ${active === item.id ? 'is-active' : ''}`}
                     aria-current={active === item.id ? 'page' : undefined}
                     href={item.href}
-                    aria-label={item.soon ? `${t(item.label)}, ${t('soon')}` : undefined}
                   >
                     {t(item.label)}
                     {item.soon && <span className="nav-link__badge">{t('soon')}</span>}
@@ -1457,7 +1015,7 @@ function ContactSection() {
           <SectionLabel>{t('getInTouch')}</SectionLabel>
           <h2>{t('contactTitle')}</h2>
           <p>{t('contactText')}</p>
-          <a className="contact-phone" href="tel:+203227552330">
+          <a className="contact-phone" href={SITE_DETAILS.phoneHref}>
             <Icon name="phone" size={19} />
             {t('phone')}
           </a>
@@ -1514,8 +1072,8 @@ function Footer() {
             <AppLink href="/#contact">{t('footerContact')}</AppLink>
           </nav>
           <div className="footer__contact">
-            <a href="tel:+203227552330">{t('phone')}</a>
-            <a href="https://www.ifarm.com" target="_blank" rel="noopener noreferrer">
+            <a href={SITE_DETAILS.phoneHref}>{t('phone')}</a>
+            <a href={SITE_DETAILS.website} target="_blank" rel="noopener noreferrer">
               {t('website')}
             </a>
           </div>
@@ -1542,6 +1100,26 @@ function HomePage() {
         <SmartSystemSection />
         <StepsSection />
         <ContactSection />
+      </main>
+      <Footer />
+    </>
+  );
+}
+
+function NotFoundPage() {
+  const { t } = useI18n();
+
+  return (
+    <>
+      <Navbar />
+      <main className="placeholder-page">
+        <section className="placeholder-card">
+          <h1>{t('pageNotFound')}</h1>
+          <p>{t('pageNotFoundText')}</p>
+          <AppLink className="button button--dark" href="/">
+            {t('backHome')}
+          </AppLink>
+        </section>
       </main>
       <Footer />
     </>
@@ -1705,58 +1283,41 @@ function ComingSoonPage({ feature }: { feature: 'store' | 'ai' }) {
   );
 }
 
-type LoginFieldName = 'username' | 'password' | 'accountId';
-function ClientLoginPage() {
-  const { t } = useI18n();
-  const [values, setValues] = useState<Record<LoginFieldName, string>>({
-    username: '',
-    password: '',
-    accountId: '',
-  });
-  const [errors, setErrors] = useState<Partial<Record<LoginFieldName, CopyKey | undefined>>>({});
-  const [submitted, setSubmitted] = useState(false);
+export function ClientLoginPage() {
+  const { t, navigate } = useI18n();
+  const { login } = useAuth();
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [status, setStatus] = useState('');
+  const loginSchema = z.object({
+    username: z.string().trim().min(1, t('usernameRequired')),
+    password: z.string().min(1, t('passwordRequired')),
+    accountId: z
+      .string()
+      .trim()
+      .min(1, t('accountIdRequired'))
+      .refine((value) => !/\s/.test(value), t('accountIdInvalid')),
+  });
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<z.infer<typeof loginSchema>>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { username: '', password: '', accountId: '' },
+  });
 
-  function validateField(field: LoginFieldName, value: string): CopyKey | undefined {
-    if (field === 'password' ? value.length === 0 : !value.trim()) {
-      if (field === 'username') return 'usernameRequired';
-      if (field === 'password') return 'passwordRequired';
-      return 'accountIdRequired';
-    }
-    if (field === 'accountId' && /\s/.test(value.trim())) return 'accountIdInvalid';
-    return undefined;
-  }
-
-  function handleChange(field: LoginFieldName, value: string) {
-    setValues((current) => ({ ...current, [field]: value }));
+  async function submitLogin(values: z.infer<typeof loginSchema>) {
     setStatus('');
-    if (submitted) setErrors((current) => ({ ...current, [field]: validateField(field, value) }));
-  }
-
-  function handleLogin(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setSubmitted(true);
-    const nextErrors: Partial<Record<LoginFieldName, CopyKey | undefined>> = {
-      username: validateField('username', values.username),
-      password: validateField('password', values.password),
-      accountId: validateField('accountId', values.accountId),
-    };
-    setErrors(nextErrors);
-    if (Object.values(nextErrors).some(Boolean)) {
-      setStatus('');
-      return;
+    try {
+      await login(values);
+      const target = getSafeRedirect(
+        new URLSearchParams(window.location.search).get('redirect'),
+        window.location.origin,
+      );
+      navigate(target);
+    } catch {
+      setStatus(t('loginNotConnected'));
     }
-    setStatus(t('loginNotConnected'));
-  }
-
-  function renderFieldError(field: LoginFieldName) {
-    const key = errors[field];
-    return key ? (
-      <span className="login-field__error" id={`login-${field}-error`}>
-        {t(key)}
-      </span>
-    ) : null;
   }
 
   return (
@@ -1775,7 +1336,13 @@ function ClientLoginPage() {
           </div>
           <h1 id="login-title">{t('loginHeading')}</h1>
           <p className="login-card__subtitle">{t('loginSubtitle')}</p>
-          <form className="login-form" noValidate onSubmit={handleLogin}>
+          <form
+            className="login-form"
+            noValidate
+            onSubmit={(event) => {
+              void handleSubmit(submitLogin)(event);
+            }}
+          >
             <div className="login-field">
               <label className="login-field__label" htmlFor="login-username">
                 {t('username')}{' '}
@@ -1786,21 +1353,22 @@ function ClientLoginPage() {
               <span className={`login-field__control ${errors.username ? 'has-error' : ''}`}>
                 <Icon name="user" size={18} />
                 <input
+                  {...register('username')}
                   id="login-username"
                   name="username"
                   type="text"
                   autoComplete="username"
                   placeholder={t('usernamePlaceholder')}
-                  value={values.username}
                   aria-invalid={Boolean(errors.username)}
                   aria-describedby={errors.username ? 'login-username-error' : undefined}
                   required
-                  onChange={(event) => {
-                    handleChange('username', event.target.value);
-                  }}
                 />
               </span>
-              {renderFieldError('username')}
+              {errors.username?.message && (
+                <span className="login-field__error" id="login-username-error">
+                  {errors.username.message}
+                </span>
+              )}
             </div>
             <div className="login-field">
               <label className="login-field__label" htmlFor="login-password">
@@ -1812,18 +1380,15 @@ function ClientLoginPage() {
               <span className={`login-field__control ${errors.password ? 'has-error' : ''}`}>
                 <Icon name="lock" size={18} />
                 <input
+                  {...register('password')}
                   id="login-password"
                   name="password"
                   type={passwordVisible ? 'text' : 'password'}
                   autoComplete="current-password"
                   placeholder={t('passwordPlaceholder')}
-                  value={values.password}
                   aria-invalid={Boolean(errors.password)}
                   aria-describedby={errors.password ? 'login-password-error' : undefined}
                   required
-                  onChange={(event) => {
-                    handleChange('password', event.target.value);
-                  }}
                 />
                 <button
                   className="password-toggle"
@@ -1837,7 +1402,11 @@ function ClientLoginPage() {
                   <Icon name={passwordVisible ? 'eyeOff' : 'eye'} size={18} />
                 </button>
               </span>
-              {renderFieldError('password')}
+              {errors.password?.message && (
+                <span className="login-field__error" id="login-password-error">
+                  {errors.password.message}
+                </span>
+              )}
             </div>
             <div className="login-field">
               <label className="login-field__label" htmlFor="login-account-id">
@@ -1849,23 +1418,28 @@ function ClientLoginPage() {
               <span className={`login-field__control ${errors.accountId ? 'has-error' : ''}`}>
                 <Icon name="id" size={18} />
                 <input
+                  {...register('accountId')}
                   id="login-account-id"
                   name="accountId"
                   type="text"
                   autoComplete="off"
                   placeholder={t('accountIdPlaceholder')}
-                  value={values.accountId}
                   aria-invalid={Boolean(errors.accountId)}
                   aria-describedby={errors.accountId ? 'login-accountId-error' : undefined}
                   required
-                  onChange={(event) => {
-                    handleChange('accountId', event.target.value);
-                  }}
                 />
               </span>
-              {renderFieldError('accountId')}
+              {errors.accountId?.message && (
+                <span className="login-field__error" id="login-accountId-error">
+                  {errors.accountId.message}
+                </span>
+              )}
             </div>
-            <button className="button button--dark login-submit" type="submit">
+            <button
+              className="button button--dark login-submit"
+              type="submit"
+              disabled={isSubmitting}
+            >
               {t('signIn')}
               <Icon name="arrow" size={16} />
             </button>
@@ -1886,63 +1460,61 @@ function ClientLoginPage() {
 
 export default function App() {
   const [locale, setLocaleState] = useState<Locale>(readSavedLocale);
-  const [route, setRoute] = useState(() => window.location.pathname.replace(/\/$/, '') || '/');
+  const location = useLocation();
+  const routerNavigate = useNavigate();
+  const navigationType = useNavigationType();
+  const route = location.pathname.replace(/\/$/, '') || '/';
   const routeScrollMode = useRef<'top' | 'hash' | 'restore' | null>(null);
-  const t = (key: CopyKey) => copy[locale][key];
-  const setLocale = (next: Locale) => {
+  const t = useCallback((key: CopyKey) => translate(locale, key), [locale]);
+  const setLocale = useCallback((next: Locale) => {
     setLocaleState(next);
-  };
-  const navigate = (to: string) => {
-    const destination = new URL(to, window.location.href);
-    if (destination.origin !== window.location.origin) return;
-    const nextRoute = destination.pathname.replace(/\/$/, '') || '/';
-    const nextUrl = `${destination.pathname}${destination.search}${destination.hash}`;
-    if (nextUrl !== `${window.location.pathname}${window.location.search}${window.location.hash}`)
-      window.history.pushState(null, '', nextUrl);
-    if (nextRoute === route) {
-      const target = destination.hash
-        ? document.getElementById(decodeHash(destination.hash.slice(1)))
-        : null;
-      if (target)
-        target.scrollIntoView({
-          behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
-            ? 'auto'
-            : 'smooth',
-        });
-      else if (!destination.hash) window.scrollTo({ top: 0, behavior: 'auto' });
-      return;
-    }
-    routeScrollMode.current = destination.hash ? 'hash' : 'top';
-    setRoute(nextRoute);
-  };
+  }, []);
+  const navigate = useCallback(
+    (to: string) => {
+      const destination = new URL(to, window.location.href);
+      if (destination.origin !== window.location.origin) return;
+      const nextRoute = destination.pathname.replace(/\/$/, '') || '/';
+      const nextUrl = `${destination.pathname}${destination.search}${destination.hash}`;
+      if (nextUrl !== `${location.pathname}${location.search}${location.hash}`)
+        routerNavigate(nextUrl, { preventScrollReset: true });
+      if (nextRoute === route) {
+        const target = destination.hash
+          ? document.getElementById(decodeHash(destination.hash.slice(1)))
+          : null;
+        if (target)
+          target.scrollIntoView({
+            behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+              ? 'auto'
+              : 'smooth',
+          });
+        else if (!destination.hash) window.scrollTo({ top: 0, behavior: 'auto' });
+        return;
+      }
+      routeScrollMode.current = destination.hash ? 'hash' : 'top';
+    },
+    [location.hash, location.pathname, location.search, route, routerNavigate],
+  );
   const value = { locale, setLocale, t, navigate };
 
   useEffect(() => {
-    const onPopState = () => {
-      routeScrollMode.current = 'restore';
-      setRoute(window.location.pathname.replace(/\/$/, '') || '/');
-    };
-    window.addEventListener('popstate', onPopState);
-    return () => {
-      window.removeEventListener('popstate', onPopState);
-    };
-  }, []);
+    if (navigationType === NavigationType.Pop) routeScrollMode.current = 'restore';
+  }, [location, navigationType]);
 
   useEffect(() => {
     saveLocale(locale);
     document.documentElement.lang = locale;
     document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr';
     document.title =
-      route === '/dashboard/login'
+      route === ROUTES.dashboardLogin
         ? `${t('clientSignIn')} · iFarm`
-        : route === '/dashboard'
+        : route === ROUTES.dashboard
           ? `${t('dashboard')} · iFarm`
-          : route === '/store'
+          : route === ROUTES.store
             ? `${t('store')} · iFarm`
-            : route === '/ai'
+            : route === ROUTES.ai
               ? `${t('ai')} · iFarm`
-              : 'iFarm — Agricultural Development';
-  }, [locale, route]);
+              : t('siteTitle');
+  }, [locale, route, t]);
 
   useEffect(() => {
     const mode = routeScrollMode.current ?? 'top';
@@ -1960,26 +1532,27 @@ export default function App() {
   }, [route]);
 
   return (
-    <I18nContext.Provider value={value}>
+    <I18nProvider {...value}>
       <div
         className={`app-shell locale-${locale}`}
         lang={locale}
         dir={locale === 'ar' ? 'rtl' : 'ltr'}
       >
         <div className="page-transition" key={route}>
-          {route === '/dashboard/login' ? (
-            <ClientLoginPage />
-          ) : route === '/dashboard' ? (
-            <DashboardWelcomePage />
-          ) : route === '/store' ? (
-            <ComingSoonPage feature="store" />
-          ) : route === '/ai' ? (
-            <ComingSoonPage feature="ai" />
-          ) : (
-            <HomePage />
-          )}
+          {route === ROUTES.dashboardLogin && <ClientLoginPage />}
+          {route === ROUTES.dashboard && <DashboardWelcomePage />}
+          {route === ROUTES.store && <ComingSoonPage feature="store" />}
+          {route === ROUTES.ai && <ComingSoonPage feature="ai" />}
+          {route === ROUTES.home && <HomePage />}
+          {![
+            ROUTES.home,
+            ROUTES.dashboard,
+            ROUTES.dashboardLogin,
+            ROUTES.store,
+            ROUTES.ai,
+          ].includes(route as (typeof ROUTES)[keyof typeof ROUTES]) && <NotFoundPage />}
         </div>
       </div>
-    </I18nContext.Provider>
+    </I18nProvider>
   );
 }

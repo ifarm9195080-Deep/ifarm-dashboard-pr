@@ -1,0 +1,127 @@
+openapi: 3.1.0
+info:
+  title: iFarm Dashboard Authentication API
+  version: 0.1.0
+  description: Frontend contract only. A real API implementation is not included in this repository.
+servers:
+  - url: https://API_ORIGIN_PLACEHOLDER
+paths:
+  /auth/login:
+    post:
+      summary: Exchange Dashboard credentials for an in-memory access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authenticated session; refresh token is set in a Secure HttpOnly cookie.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Generic credential failure.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /auth/me:
+    get:
+      summary: Return the current user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current user object.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Access token expired or absent; client may attempt refresh.
+  /auth/logout:
+    post:
+      summary: Revoke the refresh session and clear its cookie
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Session ended.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success]
+                properties:
+                  success:
+                    type: boolean
+  /auth/refresh:
+    post:
+      summary: Rotate the refresh cookie and issue a new short-lived access token
+      responses:
+        '200':
+          description: Access token refreshed; refresh cookie rotated.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [accessToken]
+                properties:
+                  accessToken:
+                    type: string
+        '401':
+          description: Refresh session is invalid; client clears auth state.
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    LoginRequest:
+      type: object
+      required: [accountId, username, password]
+      properties:
+        accountId:
+          type: string
+        username:
+          type: string
+        password:
+          type: string
+          format: password
+    LoginResponse:
+      type: object
+      required: [accessToken, user]
+      properties:
+        accessToken:
+          type: string
+          description: Short-lived JWT held in memory by the frontend.
+        user:
+          $ref: '#/components/schemas/User'
+    User:
+      type: object
+      required: [id, username, displayName]
+      properties:
+        id:
+          type: string
+          description: Stable backend-generated internal identifier.
+        username:
+          type: string
+        displayName:
+          type: string
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Invalid credentials
