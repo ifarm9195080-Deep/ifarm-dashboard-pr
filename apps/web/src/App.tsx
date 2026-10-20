@@ -5,6 +5,26 @@ type Locale = 'en' | 'ar';
 type CopyKey = keyof typeof copy.en;
 type NavItem = { id: 'home' | 'dashboard' | 'store' | 'ai'; href: string; label: CopyKey; soon?: boolean };
 
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+function readSavedLocale(): Locale {
+  try {
+    return window.localStorage.getItem('ifarm-locale') === 'ar' ? 'ar' : 'en';
+  } catch {
+    return 'en';
+  }
+}
+
+function saveLocale(locale: Locale) {
+  try {
+    window.localStorage.setItem('ifarm-locale', locale);
+  } catch {
+    // Language selection still works for the current page when storage is unavailable.
+  }
+}
+
 const copy = {
   en: {
     home: 'Home', dashboard: 'Dashboard', store: 'Store', ai: 'AI', soon: 'Soon', comingSoonTitle: 'Coming soon', comingSoonText: 'We are preparing this iFarm experience. Check back soon for updates.', backHome: 'Back to Home', contactUs: 'Contact Us', toggleLanguage: 'العربية', mainNav: 'Main navigation', toggleNav: 'Toggle navigation', footerNav: 'Footer navigation', languageLabel: 'Language', backToIFarm: 'Back to iFarm',
@@ -43,7 +63,6 @@ const copy = {
     backToDashboard: 'Back to Dashboard', loginEyebrow: 'Client access', loginTitle: 'Sign in to your iFarm workspace.', loginText: 'Use the credentials provided for your iFarm Smart System account.',
     loginHeading: 'Sign in', loginSubtitle: 'to your iFarm Dashboard', username: 'Username', usernamePlaceholder: 'Enter your username', password: 'Password', passwordPlaceholder: 'Enter your password', accountId: 'Account ID', accountIdPlaceholder: 'Enter your account ID', signIn: 'Sign In',
     usernameRequired: 'Username is required.', passwordRequired: 'Password is required.', accountIdRequired: 'Account ID is required.', accountIdInvalid: 'Please enter a valid Account ID.',
-    incorrectUsername: 'Incorrect username.', incorrectPassword: 'Incorrect password.', incorrectAccountId: 'Incorrect Account ID.',
     loginNotConnected: 'Authentication is not connected yet. You have not been signed in.', showPassword: 'Show password', hidePassword: 'Hide password',
   },
   ar: {
@@ -84,7 +103,6 @@ const copy = {
     backToDashboard: 'العودة إلى صفحة النظام', loginEyebrow: 'دخول العملاء', loginTitle: 'سجل الدخول إلى مساحة آي فارم.', loginText: 'استخدم بيانات الدخول الخاصة بحساب نظام آي فارم الذكي.',
     loginHeading: 'تسجيل الدخول', loginSubtitle: 'إلى لوحة آي فارم', username: 'اسم المستخدم', usernamePlaceholder: 'أدخل اسم المستخدم', password: 'كلمة المرور', passwordPlaceholder: 'أدخل كلمة المرور', accountId: 'معرّف الحساب', accountIdPlaceholder: 'أدخل معرّف الحساب', signIn: 'تسجيل الدخول',
     usernameRequired: 'اسم المستخدم مطلوب.', passwordRequired: 'كلمة المرور مطلوبة.', accountIdRequired: 'معرّف الحساب مطلوب.', accountIdInvalid: 'يرجى إدخال معرّف حساب صالح.',
-    incorrectUsername: 'اسم المستخدم غير صحيح.', incorrectPassword: 'كلمة المرور غير صحيحة.', incorrectAccountId: 'معرّف الحساب غير صحيح.',
     loginNotConnected: 'المصادقة غير متصلة حاليًا. لم يتم تسجيل دخولك.', showPassword: 'إظهار كلمة المرور', hidePassword: 'إخفاء كلمة المرور',
   },
 } satisfies Record<Locale, Record<string, string>>;
@@ -109,10 +127,18 @@ function AppLink({ href, onClick, target, ...props }: AppLinkProps) {
   const { navigate } = useI18n();
   function handleClick(event: MouseEvent<HTMLAnchorElement>) {
     onClick?.(event);
-    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || target === '_blank' || props.download !== undefined) return;
-    if (href.startsWith('#')) return;
+    if (event.defaultPrevented) return;
     let destination: URL;
-    try { destination = new URL(href, window.location.href); } catch { return; }
+    try { destination = new URL(href, window.location.href); } catch {
+      event.preventDefault();
+      return;
+    }
+    if (destination.protocol !== 'http:' && destination.protocol !== 'https:') {
+      event.preventDefault();
+      return;
+    }
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || target === '_blank' || props.download !== undefined) return;
+    if (href.startsWith('#')) return;
     if (destination.origin !== window.location.origin) return;
     event.preventDefault();
     navigate(`${destination.pathname}${destination.search}${destination.hash}`);
@@ -338,7 +364,7 @@ function ContactSection() {
   const errorKey: Record<InquiryField, CopyKey> = { firstName: 'firstNameRequired', lastName: 'lastNameRequired', phone: 'phoneRequired', email: 'emailRequired' };
   const errorFor = (field: InquiryField, value: string): CopyKey | undefined => {
     if (!value.trim()) return errorKey[field];
-    if (field === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) return 'emailInvalid';
+    if (field === 'email' && !isValidEmail(value)) return 'emailInvalid';
     return undefined;
   };
   function updateField(field: InquiryField, value: string) {
@@ -374,7 +400,7 @@ function DashboardWelcomePage() {
     event.preventDefault();
     const email = new FormData(event.currentTarget).get('email')?.toString().trim() ?? '';
     if (!email) { setEmailError('emailRequired'); setInterestStatus(''); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setEmailError('emailInvalid'); setInterestStatus(''); return; }
+    if (!isValidEmail(email)) { setEmailError('emailInvalid'); setInterestStatus(''); return; }
     setEmailError(null);
     setInterestStatus(t('interestNotConnected'));
   }
@@ -411,13 +437,10 @@ function ComingSoonPage({ feature }: { feature: 'store' | 'ai' }) {
 }
 
 type LoginFieldName = 'username' | 'password' | 'accountId';
-type AuthErrorCode = 'incorrectUsername' | 'incorrectPassword' | 'incorrectAccountId';
-
 function ClientLoginPage() {
   const { t } = useI18n();
   const [values, setValues] = useState<Record<LoginFieldName, string>>({ username: '', password: '', accountId: '' });
   const [errors, setErrors] = useState<Partial<Record<LoginFieldName, CopyKey>>>({});
-  const [authErrors, setAuthErrors] = useState<Partial<Record<LoginFieldName, AuthErrorCode>>>({});
   const [submitted, setSubmitted] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [status, setStatus] = useState('');
@@ -434,7 +457,6 @@ function ClientLoginPage() {
 
   function handleChange(field: LoginFieldName, value: string) {
     setValues(current => ({ ...current, [field]: value }));
-    setAuthErrors(current => ({ ...current, [field]: undefined }));
     setStatus('');
     if (submitted) setErrors(current => ({ ...current, [field]: validateField(field, value) }));
   }
@@ -442,7 +464,6 @@ function ClientLoginPage() {
   function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitted(true);
-    setAuthErrors({});
     const nextErrors: Partial<Record<LoginFieldName, CopyKey>> = {
       username: validateField('username', values.username),
       password: validateField('password', values.password),
@@ -457,7 +478,7 @@ function ClientLoginPage() {
   }
 
   function renderFieldError(field: LoginFieldName) {
-    const key = errors[field] ?? (authErrors[field] as CopyKey | undefined);
+    const key = errors[field];
     return key ? <span className="login-field__error" id={`login-${field}-error`}>{t(key)}</span> : null;
   }
 
@@ -472,9 +493,9 @@ function ClientLoginPage() {
         <h1 id="login-title">{t('loginHeading')}</h1>
         <p className="login-card__subtitle">{t('loginSubtitle')}</p>
         <form className="login-form" noValidate onSubmit={handleLogin}>
-          <div className="login-field"><label className="login-field__label" htmlFor="login-username">{t('username')} <span className="required-mark" aria-hidden="true">*</span></label><span className={`login-field__control ${errors.username || authErrors.username ? 'has-error' : ''}`}><Icon name="user" size={18} /><input id="login-username" name="username" type="text" autoComplete="username" placeholder={t('usernamePlaceholder')} value={values.username} aria-invalid={Boolean(errors.username || authErrors.username)} aria-describedby={errors.username || authErrors.username ? 'login-username-error' : undefined} required onChange={event => handleChange('username', event.target.value)} /></span>{renderFieldError('username')}</div>
-          <div className="login-field"><label className="login-field__label" htmlFor="login-password">{t('password')} <span className="required-mark" aria-hidden="true">*</span></label><span className={`login-field__control ${errors.password || authErrors.password ? 'has-error' : ''}`}><Icon name="lock" size={18} /><input id="login-password" name="password" type={passwordVisible ? 'text' : 'password'} autoComplete="current-password" placeholder={t('passwordPlaceholder')} value={values.password} aria-invalid={Boolean(errors.password || authErrors.password)} aria-describedby={errors.password || authErrors.password ? 'login-password-error' : undefined} required onChange={event => handleChange('password', event.target.value)} /><button className="password-toggle" type="button" aria-label={passwordVisible ? t('hidePassword') : t('showPassword')} aria-pressed={passwordVisible} onClick={() => setPasswordVisible(visible => !visible)}><Icon name={passwordVisible ? 'eyeOff' : 'eye'} size={18} /></button></span>{renderFieldError('password')}</div>
-          <div className="login-field"><label className="login-field__label" htmlFor="login-account-id">{t('accountId')} <span className="required-mark" aria-hidden="true">*</span></label><span className={`login-field__control ${errors.accountId || authErrors.accountId ? 'has-error' : ''}`}><Icon name="id" size={18} /><input id="login-account-id" name="accountId" type="text" autoComplete="off" placeholder={t('accountIdPlaceholder')} value={values.accountId} aria-invalid={Boolean(errors.accountId || authErrors.accountId)} aria-describedby={errors.accountId || authErrors.accountId ? 'login-accountId-error' : undefined} required onChange={event => handleChange('accountId', event.target.value)} /></span>{renderFieldError('accountId')}</div>
+          <div className="login-field"><label className="login-field__label" htmlFor="login-username">{t('username')} <span className="required-mark" aria-hidden="true">*</span></label><span className={`login-field__control ${errors.username ? 'has-error' : ''}`}><Icon name="user" size={18} /><input id="login-username" name="username" type="text" autoComplete="username" placeholder={t('usernamePlaceholder')} value={values.username} aria-invalid={Boolean(errors.username)} aria-describedby={errors.username ? 'login-username-error' : undefined} required onChange={event => handleChange('username', event.target.value)} /></span>{renderFieldError('username')}</div>
+          <div className="login-field"><label className="login-field__label" htmlFor="login-password">{t('password')} <span className="required-mark" aria-hidden="true">*</span></label><span className={`login-field__control ${errors.password ? 'has-error' : ''}`}><Icon name="lock" size={18} /><input id="login-password" name="password" type={passwordVisible ? 'text' : 'password'} autoComplete="current-password" placeholder={t('passwordPlaceholder')} value={values.password} aria-invalid={Boolean(errors.password)} aria-describedby={errors.password ? 'login-password-error' : undefined} required onChange={event => handleChange('password', event.target.value)} /><button className="password-toggle" type="button" aria-label={passwordVisible ? t('hidePassword') : t('showPassword')} aria-pressed={passwordVisible} onClick={() => setPasswordVisible(visible => !visible)}><Icon name={passwordVisible ? 'eyeOff' : 'eye'} size={18} /></button></span>{renderFieldError('password')}</div>
+          <div className="login-field"><label className="login-field__label" htmlFor="login-account-id">{t('accountId')} <span className="required-mark" aria-hidden="true">*</span></label><span className={`login-field__control ${errors.accountId ? 'has-error' : ''}`}><Icon name="id" size={18} /><input id="login-account-id" name="accountId" type="text" autoComplete="off" placeholder={t('accountIdPlaceholder')} value={values.accountId} aria-invalid={Boolean(errors.accountId)} aria-describedby={errors.accountId ? 'login-accountId-error' : undefined} required onChange={event => handleChange('accountId', event.target.value)} /></span>{renderFieldError('accountId')}</div>
           <button className="button button--dark login-submit" type="submit">{t('signIn')}<Icon name="arrow" size={16} /></button>
           <p className={`login-form__status ${status ? 'is-visible' : ''}`} role="status" aria-live="polite">{status}</p>
         </form>
@@ -485,14 +506,11 @@ function ClientLoginPage() {
 }
 
 export default function App() {
-  const [locale, setLocaleState] = useState<Locale>(() => localStorage.getItem('ifarm-locale') === 'ar' ? 'ar' : 'en');
+  const [locale, setLocaleState] = useState<Locale>(readSavedLocale);
   const [route, setRoute] = useState(() => window.location.pathname.replace(/\/$/, '') || '/');
   const routeScrollMode = useRef<'top' | 'hash' | 'restore' | null>(null);
   const t = (key: CopyKey) => copy[locale][key];
-  const setLocale = (next: Locale) => {
-    localStorage.setItem('ifarm-locale', next);
-    setLocaleState(next);
-  };
+  const setLocale = (next: Locale) => setLocaleState(next);
   const navigate = (to: string) => {
     const destination = new URL(to, window.location.href);
     if (destination.origin !== window.location.origin) return;
@@ -520,7 +538,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('ifarm-locale', locale);
+    saveLocale(locale);
     document.documentElement.lang = locale;
     document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr';
     document.title = route === '/dashboard/login' ? `${t('clientSignIn')} · iFarm` : route === '/dashboard' ? `${t('dashboard')} · iFarm` : route === '/store' ? `${t('store')} · iFarm` : route === '/ai' ? `${t('ai')} · iFarm` : 'iFarm — Agricultural Development';
