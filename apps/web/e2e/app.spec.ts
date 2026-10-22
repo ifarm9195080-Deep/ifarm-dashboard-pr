@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
@@ -13,7 +13,7 @@ test('sign-in validates and completes the mocked login flow', async ({ page }) =
   await page.getByLabel('Account ID').fill('external-id');
   await page.getByRole('button', { name: 'Sign In' }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
-  await expect(page.getByRole('heading', { name: /Your Farm/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Welcome to your farm' })).toBeVisible();
 });
 
 test('language switch updates the document direction', async ({ page }) => {
@@ -52,8 +52,8 @@ test('all primary routes have no serious or critical axe violations', async ({ p
 });
 
 const baselineRoutes = [
-  { route: '/', name: 'home' },
-  { route: '/dashboard', name: 'dashboard' },
+  { route: '/company', name: 'home' },
+  { route: '/', name: 'dashboard' },
   { route: '/dashboard/login', name: 'dashboard-login' },
 ];
 
@@ -66,8 +66,26 @@ for (const { route, name } of baselineRoutes) {
         await page.goto(route);
         await expect(page.locator('.app-shell')).toBeVisible();
         await page.evaluate(() => document.fonts.ready);
+        await page.locator('img[loading="lazy"]').evaluateAll((images) => {
+          images.forEach((image) => image.setAttribute('loading', 'eager'));
+        });
+        await page.evaluate(async () => {
+          await Promise.all(
+            Array.from(document.images, async (image) => {
+              if (!image.complete) {
+                await new Promise<void>((resolve) => {
+                  image.addEventListener('load', () => resolve(), { once: true });
+                  image.addEventListener('error', () => resolve(), { once: true });
+                });
+              }
+              if (image.complete && image.naturalWidth > 0) await image.decode().catch(() => {});
+            }),
+          );
+        });
         await page.evaluate(() =>
-          Promise.all(document.getAnimations().map((animation) => animation.finished.catch(() => {}))),
+          Promise.all(
+            document.getAnimations().map((animation) => animation.finished.catch(() => {})),
+          ),
         );
         const current = PNG.sync.read(await page.screenshot({ fullPage: true }));
         const baselinePath = path.join(
@@ -88,6 +106,9 @@ for (const { route, name } of baselineRoutes) {
           { threshold: 0.15 },
         );
         const difference = differentPixels / (current.width * comparisonHeight);
+        if (difference >= 0.02) {
+          await writeFile(testInfo.outputPath('current.png'), await page.screenshot({ fullPage: true }));
+        }
         testInfo.annotations.push({
           type: 'visual-diff',
           description: `${(difference * 100).toFixed(3)}% different pixels; height delta ${current.height - baseline.height}px`,

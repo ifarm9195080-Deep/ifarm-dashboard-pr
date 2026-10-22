@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { router } from './app/router';
 import { RouterProvider } from 'react-router-dom';
+import { isDevelopmentMockMode } from './shared/api/apiConfig';
 import './styles.css';
 import '@fontsource/arimo/latin-400.css';
 import '@fontsource/arimo/latin-500.css';
@@ -22,7 +23,7 @@ if (!root) throw new Error('Root element not found');
 const container = root;
 
 async function bootstrap() {
-  if (import.meta.env.DEV) {
+  if (isDevelopmentMockMode) {
     const { worker } = await import('./mocks/browser');
     await worker.start({ onUnhandledRequest: 'bypass' });
   }

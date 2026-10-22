@@ -28,6 +28,9 @@ npm run dev
 - `apps/web/source-assets` — retained source images
 - `docs` — architecture, planning, review, and deployment notes
 
-Set `VITE_API_BASE_URL` in an ignored local `.env` file for API integration. `.env.example` contains
-the variable name only. Never put secrets or credentials in frontend environment variables. Run
+Local development uses a development-only MSW mock by default; leave `VITE_API_BASE_URL` unset.
+Copying `.env.example` does not set an API URL. Set `VITE_API_BASE_URL` in an ignored local `.env`
+only when intentionally connecting to a running API configured for this app's origin and
+credentials. A configured API URL disables MSW because its service worker cannot intercept
+cross-origin requests. Never put secrets or credentials in frontend environment variables. Run
 `npm run validate` from `apps/web` for the complete frontend validation gate.

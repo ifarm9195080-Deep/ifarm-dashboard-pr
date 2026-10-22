@@ -26,7 +26,16 @@ function RouteError() {
   );
 }
 
-const paths = ['/', '/dashboard', '/dashboard/login', '/store', '/ai', '*'];
+const paths = [
+  '/',
+  '/company',
+  '/dashboard/login',
+  '/dashboard',
+  '/dashboard/*',
+  '/store',
+  '/ai',
+  '*',
+];
 
 export const router = createBrowserRouter(
   paths.map((path) => ({

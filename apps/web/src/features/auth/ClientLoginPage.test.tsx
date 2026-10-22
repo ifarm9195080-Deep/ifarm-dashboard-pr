@@ -10,7 +10,10 @@ import { I18nProvider, translate } from '../../i18n/I18nProvider';
 import type { CopyKey } from '../../i18n';
 
 function LoginHarness() {
-  const navigate = useNavigate();
+  const routerNavigate = useNavigate();
+  const navigate = (to: string) => {
+    void routerNavigate(to);
+  };
   return (
     <I18nProvider
       locale="en"

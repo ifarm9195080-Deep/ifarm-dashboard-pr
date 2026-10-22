@@ -1,8 +1,8 @@
 # iFarm — Software Architecture & Technical Requirements
 
-**Document status:** Architecture planning — Version 1.0  
+**Document status:** Architecture planning — Version 1.1
 **Purpose:** Technical reference for Codex, development, infrastructure setup, and implementation planning.  
-**Authority:** Current user-provided architecture. Confirmed requirements, proposed choices, and unresolved decisions are labelled separately.
+**Authority:** Technical decision record. Read with `docs/PROJECT_CONTEXT.md`, which records the current approved product and phase context. Newer explicit user decisions supersede historical statements below. Confirmed requirements, proposed choices, deferred work, and unresolved decisions are labelled separately.
 
 ## 1. Project overview
 
@@ -15,30 +15,30 @@ The systems belong to one company but use separate application architectures, da
 
 ## 2. Technology choices
 
-| Component | Technology | Status |
-|---|---|---|
-| Dashboard web | React, Vite, TypeScript | Confirmed |
-| Dashboard mobile | React Native, Expo | Confirmed |
-| Dashboard backend | Node.js, NestJS, TypeScript | Confirmed |
-| Dashboard database | Dedicated Supabase PostgreSQL project | Confirmed |
-| Dashboard authentication | Custom NestJS authentication with JWT | Confirmed |
-| Store web | Next.js, TypeScript | Proposed |
-| Store mobile | React Native, Expo | Confirmed |
-| Store backend | Node.js, NestJS, TypeScript | Confirmed |
-| Store database | Separate Supabase PostgreSQL project | Confirmed |
-| Store authentication | Supabase Auth | Planned |
-| Initial hosting | Hostinger VPS KVM 2 | Initial selection |
-| Containers | Docker, Docker Compose | Planned |
-| Reverse proxy / HTTPS | Caddy, Let's Encrypt | Proposed |
-| Source control | Separate private GitHub repositories | Confirmed |
-| Sensor messaging | MQTT + JSON | Confirmed |
-| MQTT broker | Eclipse Mosquitto | Planned |
-| Camera control | ONVIF | Confirmed capability |
-| Camera video input | RTSP | Pending camera verification |
-| Browser video | WebRTC; HLS fallback if needed | Proposed |
-| Media gateway | go2rtc | Proposed |
+| Component                | Technology                                                             | Status                                                                                                                     |
+| ------------------------ | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Dashboard web            | React, Vite, TypeScript                                                | Confirmed                                                                                                                  |
+| Dashboard mobile         | React Native, Expo                                                     | Confirmed                                                                                                                  |
+| Dashboard backend        | Not selected                                                           | **Unresolved.** NestJS was marked confirmed in v1.0; that choice is superseded. Do not assume NestJS or another framework. |
+| Dashboard database       | Dedicated Supabase PostgreSQL project                                  | Confirmed                                                                                                                  |
+| Dashboard authentication | Backend-enforced authentication; implementation and session design TBD | The former NestJS/JWT pairing is superseded with the framework choice.                                                     |
+| Store web                | Next.js, TypeScript                                                    | Proposed                                                                                                                   |
+| Store mobile             | React Native, Expo                                                     | Confirmed                                                                                                                  |
+| Store backend            | Node.js, NestJS, TypeScript                                            | Confirmed                                                                                                                  |
+| Store database           | Separate Supabase PostgreSQL project                                   | Confirmed                                                                                                                  |
+| Store authentication     | Supabase Auth                                                          | Planned                                                                                                                    |
+| Initial hosting          | Hostinger VPS KVM 2                                                    | Initial selection                                                                                                          |
+| Containers               | Docker, Docker Compose                                                 | Planned                                                                                                                    |
+| Reverse proxy / HTTPS    | Caddy, Let's Encrypt                                                   | Proposed                                                                                                                   |
+| Source control           | Separate private GitHub repositories                                   | Confirmed                                                                                                                  |
+| Sensor messaging         | MQTT + JSON                                                            | Confirmed                                                                                                                  |
+| MQTT broker              | Eclipse Mosquitto                                                      | Planned                                                                                                                    |
+| Camera control           | ONVIF                                                                  | Confirmed capability                                                                                                       |
+| Camera video input       | RTSP                                                                   | Pending camera verification                                                                                                |
+| Browser video            | WebRTC; HLS fallback if needed                                         | Proposed                                                                                                                   |
+| Media gateway            | go2rtc                                                                 | Proposed                                                                                                                   |
 
-**Constraint:** Do not replace NestJS with Spring Boot.
+**Current constraint:** Do not select or implement a Dashboard backend framework without an approved decision. The v1.0 NestJS constraint is historical, not current.
 
 ## 3. Hosting and infrastructure
 
@@ -48,14 +48,14 @@ Planned VPS services include both application backends and web frontends, Mosqui
 
 Use two separate Supabase projects:
 
-- **Dashboard:** PostgreSQL for accounts, farms/devices, readings, thresholds, notifications, and audit records. Dashboard login is custom NestJS auth, not Supabase Auth.
+- **Dashboard:** PostgreSQL for accounts, farms/devices, readings, thresholds, notifications, and audit records. Dashboard authentication is intended to be enforced by the backend; its framework and session design are undecided. The former NestJS/Supabase Auth exclusion pairing should be revisited when backend design is approved.
 - **Store:** PostgreSQL, Supabase Auth, product/order data, and storage as needed.
 
 Keep services, secrets, authorization boundaries, and deployment configurations separate even if both systems share the VPS. A VPS failure can affect both. Production readiness requires monitoring, external backups, and recovery procedures.
 
 ## 4. Dashboard product model and tenancy
 
-Each farm initially has one unique Dashboard customer account, approximately 6–7 sensors minimum, two PTZ cameras, web access, and mobile access. Sensor count must be expandable.
+Each farm has one Owner and may have Members with configurable permissions. The earlier v1.0 single-customer-login assumption is superseded. Only an Admin may add or remove sensors and dashboard widgets. Sensor readings are expected every five minutes. Sensor count must be expandable. Initial product planning anticipates two PTZ cameras, web access, and mobile access; the exact initial sensor count is not a confirmed minimum.
 
 Use tenant-based isolation. Give each farm/customer environment a unique internal identifier; associate all farm-specific records with the correct tenant. The backend must enforce tenant isolation for every relevant API request. PostgreSQL RLS may add defense in depth but does not replace backend authorization.
 
@@ -63,9 +63,9 @@ Use tenant-based isolation. Give each farm/customer environment a unique interna
 
 ### Customer identity
 
-The initial release has one customer login account per Dashboard. Do not add customer-created sub-users or employee accounts unless requirements change. Administrative staff accounts are separate.
+Each farm has one Owner and may have Members with configurable permissions. This supersedes the v1.0 single-customer-login assumption. The exact permission matrix, invitation flows, and relationship between farm Admin and platform administration remain unresolved. Administrative staff accounts remain a separate concept.
 
-Each Dashboard account has:
+The following Internal/External ID requirements are retained as historical design context pending review against the new membership model:
 
 - **Internal ID:** backend-generated, preferably UUID, stable for the account lifetime, used for database relations to farms, devices, reports, and other data.
 - **External ID:** unique, customer-facing identifier, proposed 12 characters, generated administratively, associated with the physical Dashboard product, usable for login and support, and regenerable by authorized staff. Never use as a primary key.
@@ -123,7 +123,7 @@ Availability states:
 
 Offline changes update Dashboard status and notify the customer and administrator. A valid new reading restores Online and updates last-seen. Make thresholds configurable later as network conditions require.
 
-Initial policy accepts lost readings during internet outages; no full buffer/retransmit requirement. Resume on new messages after connectivity returns. Charts show missing periods as gaps and never fabricate readings.
+Initial reports should show latest readings and averages over a selected period. Initial policy accepts lost readings during internet outages; no full buffer/retransmit requirement. Resume on new messages after connectivity returns. Charts show missing periods as gaps and never fabricate readings.
 
 ## 8. Thresholds and alerts
 
@@ -135,7 +135,7 @@ An out-of-range reading produces a Dashboard warning and customer notification. 
 
 Each farm initially has two PTZ IP cameras, both viewable simultaneously. Customer controls: pan left/right and tilt up/down; zoom is not required. Web and mobile users need remote access.
 
-ONVIF is confirmed for PTZ and may support discovery/media configuration. RTSP is proposed for video input and must be verified. WebRTC is proposed for low-latency clients; HLS is an optional fallback; go2rtc is a proposed gateway. ONVIF does not replace the media transport.
+PTZ controls are up, down, left, and right; zoom is not required. ONVIF is confirmed for PTZ and may support discovery/media configuration. RTSP is proposed for video input and must be verified. WebRTC is proposed for low-latency clients; HLS is an optional fallback; go2rtc is a proposed gateway. ONVIF does not replace the media transport.
 
 Farm cameras are behind local networks. A VPS cannot automatically reach private camera IPs. Select and test secure connectivity (VPN, outbound tunnel, or small farm-side networking gateway). Never expose RTSP/ONVIF directly to the public internet.
 
@@ -145,7 +145,7 @@ Streaming schedule is unresolved: continuous 24/7 delivery or on-demand delivery
 
 ## 10. Dashboard API and database
 
-Use a NestJS modular monolith. Do not add microservices without demonstrated scaling needs. Proposed modules: Auth; Tenants; Dashboard Identity; Devices; MQTT Ingestion; Readings; Thresholds; Alerts; Cameras; PTZ Control; Notifications; Reports; Admin; Audit. These are code boundaries, not separately deployed services.
+Backend technology and deployment topology are unresolved. The v1.0 NestJS modular monolith and module list are historical candidates, not approved architecture. Keep API contracts backend-independent until a framework and deployment design are selected. Avoid introducing microservices without demonstrated need.
 
 Preliminary schema candidates: `tenants`, `dashboard_accounts`, `dashboard_permissions`, `devices`, `sensor_readings`, `sensor_thresholds`, `cameras`, `alerts`, `notifications`, `refresh_sessions`, `password_reset_tokens`, `temporary_qr_tokens`, `audit_logs`. Final schema, relationships, indexes, retention policy, and migrations require detailed design and review.
 
@@ -153,11 +153,11 @@ Store timestamps in UTC using timezone-aware types. Display farm reports in loca
 
 ## 11. Web, mobile, and data flow
 
-Web uses React + Vite + TypeScript; mobile uses React Native + Expo with a native experience rather than a wrapper. Both use the same NestJS API and share authentication, customer identity, authorization, farm data, readings, camera access, alerts, threshold settings. Their interfaces remain independent.
+Web uses React + Vite + TypeScript; mobile uses React Native + Expo with a native experience rather than a wrapper. Both are expected to use shared, backend-independent API contracts for authentication, farm identity, authorization, farm data, readings, camera access, alerts, and threshold settings. The API implementation technology is undecided. Their interfaces remain independent.
 
 ```text
 Dashboard Web (React) ─────┐
-                            ├── NestJS REST API (Hostinger VPS)
+                            ├── Dashboard API (technology undecided)
 Dashboard Mobile (Expo) ────┘                 │
                                               └── Supabase PostgreSQL
 ```
@@ -166,7 +166,7 @@ Video may use a separately authenticated media transport rather than routing all
 
 ## 12. Administration
 
-Admin Panel is separate from customer-facing Dashboard. Expected capabilities: create customer accounts; assign IDs; associate Dashboard/farm; register and assign sensors/cameras; regenerate External IDs; issue replacement device QR; account recovery; manage permissions; enable/disable customer threshold edits; view connection status; receive sensor-offline alerts; inspect audit logs; and, if implemented, generate temporary single-use QR.
+Advanced Admin Panel workflows are deferred. The confirmed rule is that only an Admin can add or remove sensors and dashboard widgets. Further expected capabilities (subject to approval) may include creating accounts, registering devices, managing permissions, and inspecting audit logs. Admin authentication remains separate from customer authentication, and administrative actions must be auditable when implemented.
 
 Admin auth and authorization are separate from customer auth. All administrative actions are auditable.
 
@@ -225,6 +225,7 @@ The precise repository organization remains proposed, not finalized.
 13. Complete Admin Panel requirements.
 14. Finalize Store payment and delivery workflows.
 15. Test KVM 2 under realistic sensor/video workloads.
+16. Select a Dashboard backend framework.
 
 ## 18. Codex implementation rules
 
@@ -233,7 +234,7 @@ The precise repository organization remains proposed, not finalized.
 3. Do not treat unresolved features as approved.
 4. Prioritize Dashboard.
 5. Prefer maintainable architecture for a small team.
-6. Use NestJS + TypeScript for backend.
+6. Do not assume a Dashboard backend framework; await an explicit decision.
 7. Enforce tenant isolation and authorization server-side.
 8. Never expose Supabase service-role credentials or secrets to frontends.
 9. Keep Internal IDs stable and independent of regenerable External IDs.
@@ -243,4 +244,8 @@ The precise repository organization remains proposed, not finalized.
 
 ## 19. Initial development objective
 
-Establish a clean, secure, extensible foundation for the Monitoring Dashboard: identity model, authentication architecture, MQTT ingestion, database structure, and web/mobile API contracts. Do not implement the entire platform at once. First inspect the repository, identify existing code, propose a phased plan, and wait for approval before major architectural changes.
+Establish a clean, secure, extensible foundation for the Monitoring Dashboard. Keep web/mobile API contracts backend-independent. Do not implement the entire platform at once. First inspect the repository, identify existing code, propose a phased plan, and wait for approval before major architectural changes.
+
+## 20. Superseded v1.0 decisions and current phase
+
+The v1.0 statements that the Dashboard backend was confirmed as NestJS and that each dashboard had one customer login account are retained in Git history but superseded by current user decisions. Backend technology is undecided. Each farm has one Owner and may have Members with configurable permissions. See `docs/PROJECT_CONTEXT.md` for the current product scope, MVP phase, and deferred features. Thermal imaging, advanced administration workflows, real backend integration, and retention-policy implementation are deferred from the current frontend phase.

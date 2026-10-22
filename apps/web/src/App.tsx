@@ -9,8 +9,13 @@ import { type CopyKey, type Locale } from './i18n';
 import { I18nProvider, translate, useI18n } from './i18n/I18nProvider';
 import { useAuth } from './features/auth/AuthProvider';
 import { getSafeRedirect } from './shared/utils/safeRedirect';
-import { ROUTES, SITE_DETAILS } from './config/site';
+import { DASHBOARD_NAVIGATION, ROUTES, SITE_DETAILS } from './config/site';
 import { isValidEmail } from './shared/validation/isValidEmail';
+import { ApiError } from './shared/api/apiClient';
+import { isDevelopmentMockMode } from './shared/api/apiConfig';
+import { ProtectedRoute } from './features/auth/ProtectedRoute';
+import { DashboardLayout } from './features/dashboard/layout/DashboardLayout';
+import { DashboardPage } from './features/dashboard/pages/DashboardPage';
 type NavItem = {
   id: 'home' | 'dashboard' | 'store' | 'ai';
   href: string;
@@ -43,10 +48,18 @@ function saveLocale(locale: Locale) {
 }
 
 const navItems: NavItem[] = [
-  { id: 'home', href: ROUTES.home, label: 'home' },
-  { id: 'dashboard', href: ROUTES.dashboard, label: 'dashboard' },
+  { id: 'home', href: ROUTES.marketingHome, label: 'home' },
+  { id: 'dashboard', href: ROUTES.home, label: 'dashboard' },
   { id: 'store', href: ROUTES.store, label: 'store', soon: true },
   { id: 'ai', href: ROUTES.ai, label: 'ai', soon: true },
+];
+
+const notFoundExcludedRoutes: readonly string[] = [
+  ROUTES.home,
+  ROUTES.marketingHome,
+  ROUTES.dashboardLogin,
+  ROUTES.store,
+  ROUTES.ai,
 ];
 
 type IconName =
@@ -265,7 +278,7 @@ function Button({
 function BrandMark() {
   const { t } = useI18n();
   return (
-    <AppLink href="/" className="brand" aria-label={t('companyName')}>
+    <AppLink href={ROUTES.home} className="brand" aria-label={t('companyName')}>
       <span className="brand__logo">
         <img src="/assets/logo.webp" width="160" height="150" alt="" decoding="async" />
       </span>
@@ -330,7 +343,7 @@ function Navbar({
         <div className={`nav-content ${open ? 'is-open' : ''}`}>
           {login ? (
             <div className="login-header-actions">
-              <AppLink className="back-to-ifarm" href="/dashboard">
+              <AppLink className="back-to-ifarm" href={ROUTES.home}>
                 <span aria-hidden="true">←</span>
                 <span>{t('backToIFarm')}</span>
               </AppLink>
@@ -886,7 +899,7 @@ function SmartSystemSection() {
           <h2>{t('smartTitle')}</h2>
           <p>{t('smartText')}</p>
           <Benefits items={['smartBenefit1', 'smartBenefit2', 'smartBenefit3']} />
-          <Button href="/dashboard" variant="lime">
+          <Button href={ROUTES.home} variant="lime">
             {t('discoverSystem')}
           </Button>
         </div>
@@ -1066,10 +1079,10 @@ function Footer() {
             </div>
           </div>
           <nav className="footer__links" aria-label={t('footerNav')}>
-            <AppLink href="/">{t('home')}</AppLink>
-            <AppLink href="/dashboard">{t('dashboard')}</AppLink>
-            <AppLink href="/#services">{t('footerServices')}</AppLink>
-            <AppLink href="/#contact">{t('footerContact')}</AppLink>
+            <AppLink href={ROUTES.marketingHome}>{t('home')}</AppLink>
+            <AppLink href={ROUTES.home}>{t('dashboard')}</AppLink>
+            <AppLink href={`${ROUTES.marketingHome}#services`}>{t('footerServices')}</AppLink>
+            <AppLink href={`${ROUTES.marketingHome}#contact`}>{t('footerContact')}</AppLink>
           </nav>
           <div className="footer__contact">
             <a href={SITE_DETAILS.phoneHref}>{t('phone')}</a>
@@ -1315,8 +1328,14 @@ export function ClientLoginPage() {
         window.location.origin,
       );
       navigate(target);
-    } catch {
-      setStatus(t('loginNotConnected'));
+    } catch (error) {
+      setStatus(
+        t(
+          error instanceof ApiError && error.status === 401
+            ? 'loginNotConnected'
+            : 'loginServiceUnavailable',
+        ),
+      );
     }
   }
 
@@ -1336,6 +1355,11 @@ export function ClientLoginPage() {
           </div>
           <h1 id="login-title">{t('loginHeading')}</h1>
           <p className="login-card__subtitle">{t('loginSubtitle')}</p>
+          {import.meta.env.DEV && (
+            <p className="login-development-note" role="note">
+              {t(isDevelopmentMockMode ? 'developmentMockNotice' : 'developmentApiNotice')}
+            </p>
+          )}
           <form
             className="login-form"
             noValidate
@@ -1476,7 +1500,7 @@ export default function App() {
       const nextRoute = destination.pathname.replace(/\/$/, '') || '/';
       const nextUrl = `${destination.pathname}${destination.search}${destination.hash}`;
       if (nextUrl !== `${location.pathname}${location.search}${location.hash}`)
-        routerNavigate(nextUrl, { preventScrollReset: true });
+        void routerNavigate(nextUrl, { preventScrollReset: true });
       if (nextRoute === route) {
         const target = destination.hash
           ? document.getElementById(decodeHash(destination.hash.slice(1)))
@@ -1504,11 +1528,12 @@ export default function App() {
     saveLocale(locale);
     document.documentElement.lang = locale;
     document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr';
+    const dashboardPage = DASHBOARD_NAVIGATION.find((item) => item.path === route);
     document.title =
       route === ROUTES.dashboardLogin
         ? `${t('clientSignIn')} · iFarm`
-        : route === ROUTES.dashboard
-          ? `${t('dashboard')} · iFarm`
+        : dashboardPage || route.startsWith(`${ROUTES.dashboard}/`)
+          ? `${t(dashboardPage?.label ?? 'dashboardOverview')} · iFarm`
           : route === ROUTES.store
             ? `${t('store')} · iFarm`
             : route === ROUTES.ai
@@ -1540,17 +1565,25 @@ export default function App() {
       >
         <div className="page-transition" key={route}>
           {route === ROUTES.dashboardLogin && <ClientLoginPage />}
-          {route === ROUTES.dashboard && <DashboardWelcomePage />}
+          {(route === ROUTES.dashboard || route.startsWith(`${ROUTES.dashboard}/`)) &&
+            route !== ROUTES.dashboardLogin && (
+              <ProtectedRoute>
+                {route === `${ROUTES.dashboard}/welcome` ? (
+                  <DashboardWelcomePage />
+                ) : (
+                  <DashboardLayout>
+                    <DashboardPage />
+                  </DashboardLayout>
+                )}
+              </ProtectedRoute>
+            )}
           {route === ROUTES.store && <ComingSoonPage feature="store" />}
           {route === ROUTES.ai && <ComingSoonPage feature="ai" />}
-          {route === ROUTES.home && <HomePage />}
-          {![
-            ROUTES.home,
-            ROUTES.dashboard,
-            ROUTES.dashboardLogin,
-            ROUTES.store,
-            ROUTES.ai,
-          ].includes(route as (typeof ROUTES)[keyof typeof ROUTES]) && <NotFoundPage />}
+          {route === ROUTES.home && <DashboardWelcomePage />}
+          {route === ROUTES.marketingHome && <HomePage />}
+          {!notFoundExcludedRoutes.includes(route) && !route.startsWith(`${ROUTES.dashboard}/`) && (
+            <NotFoundPage />
+          )}
         </div>
       </div>
     </I18nProvider>

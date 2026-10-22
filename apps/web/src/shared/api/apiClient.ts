@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { refreshResponseSchema } from './schemas';
+import { apiBaseUrl } from './apiConfig';
 
-const apiBaseUrl = String(import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '');
 const timeoutMs = 10_000;
 let accessToken: string | null = null;
 let refreshInFlight: Promise<boolean> | null = null;

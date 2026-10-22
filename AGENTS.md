@@ -2,32 +2,38 @@
 
 ## Source of truth
 
-Read `ARCHITECTURE.md` before making project decisions. Keep confirmed choices, proposals, and unresolved items distinct. The architecture document records the user's current requirements.
+- Read `docs/PROJECT_CONTEXT.md` and `ARCHITECTURE.md` before making project decisions.
+- `docs/PROJECT_CONTEXT.md` records the latest approved product requirements, current MVP scope, phase, and deferred work.
+- `ARCHITECTURE.md` records technical decisions and unresolved choices. If it conflicts with a newer explicit user decision, the newer decision prevails; reconcile the documents in the same approved change.
+- Label decisions as confirmed, proposed, deferred, or unresolved. Do not turn proposals or historical choices into current requirements.
 
-## Product scope
+## Product and workspace boundaries
 
-- Prioritize the iFarm Monitoring Dashboard.
-- Keep iFarm Store in its own private GitHub repository, Supabase project, authentication system, deployment configuration, and authorization boundary.
-- Do not add Store implementation to this Dashboard workspace.
+- Continue development in the existing React application at `apps/web`. Do not create another dashboard app or rebuild the repository.
+- Preserve the public i-Farm Welcome Page, interest form, marketing routes, Client Sign In, Back to i-Farm navigation, and unrelated working functionality.
+- Keep iFarm Store in its separate private repository, project, authentication system, deployment configuration, and authorization boundary. Do not implement Store features here.
+- Do not implement backend services or database operations in this frontend workspace.
 
-## Architecture constraints
+## Current frontend architecture
 
-- Use NestJS and TypeScript for the Dashboard API. Do not replace NestJS with Spring Boot.
-- Use a modular monolith initially; do not introduce microservices without a demonstrated need.
-- Use React + Vite + TypeScript for web and React Native + Expo for mobile, against the same NestJS API.
-- Use the Dashboard's dedicated Supabase PostgreSQL project. Dashboard authentication is custom in NestJS, not Supabase Auth.
-- Enforce tenant authorization in the backend for every tenant-scoped request. RLS is only an additional defense.
-- Keep the backend-generated Internal ID stable. The regenerable External ID must never be a primary key or password substitute.
-- Never expose service-role credentials, secrets, or permanent authentication tokens to frontends or QR codes.
-- Treat device QR as identification/navigation. Treat temporary admin QR as a proposed, security-sensitive feature requiring final design.
-- Store timestamps in UTC and display reports in the farm's local timezone; Africa/Cairo is the initial target.
-- Do not assume Store details, 2FA, camera transport/network, notification channels, retention, or other unresolved decisions are finalized.
+- Use React, Vite, and strict TypeScript. Keep features isolated in feature-based modules and keep dashboard styles scoped to dashboard roots or CSS modules.
+- Keep UI components small, semantic, accessible, and free of `any`, unsafe HTML injection, unnecessary dependencies, and duplicated business logic.
+- Keep API contracts backend-independent and mock adapters replaceable. Do not couple UI components to a backend framework.
+- Preserve English/Arabic localization and correct RTL/LTR behavior.
+- Frontend route guards are UX only, never authorization.
 
-## Workflow
+## Security
 
-1. Inspect the existing repository and report its current state before proposing changes.
-2. For the initial foundation, propose a small, reviewable phase with scope, risks, and acceptance criteria.
-3. Wait for user approval before major architectural changes or broad implementation.
-4. Do not apply database migrations to a hosted project without explicit approval for that operation.
-5. Keep secrets out of source control. Do not reveal secret values found in local files.
-6. Do not add or run tests unless asked; when asked to verify, report exactly what was run.
+- Never add secrets, passwords, production credentials, or permanent tokens to source or frontend bundles.
+- Never store authentication tokens in localStorage or sessionStorage. Keep mock auth development-only and clearly labeled.
+- Validate external URLs before rendering them. Do not expose stack traces or sensitive errors to users; do not log credentials or sensitive data.
+- Preserve existing security hardening. Do not weaken production behavior to make development mocks work.
+
+## Changes and verification
+
+- Inspect Git status and relevant existing code before editing. Preserve unrelated changes and files; never reset, delete, or overwrite them without explicit approval.
+- Ask for approval before major architecture changes, new phases, destructive actions, deployments, or hosted database changes.
+- Add focused regression tests for affected routes and UI. When the user asks for verification, run and report lint, typecheck, unit tests, production build, and appropriate browser checks.
+- Never claim visual verification without an actual browser render at the stated viewport(s). Distinguish code inspection from browser evidence.
+- Report failing tests and existing warnings accurately. Do not blindly update snapshots to make tests pass; verify intended behavior and review visual changes first.
+- Do not proceed to a later development phase without approval.

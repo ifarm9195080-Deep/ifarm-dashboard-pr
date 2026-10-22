@@ -1922,6 +1922,44 @@ textarea {
 .login-route .login-submit:hover {
   background: #104632;
 }
+/* Keep the sign-in route aligned with the dashboard's restrained white and forest palette. */
+.login-route .login-screen {
+  min-height: 620px;
+  background: #f5f8f4;
+}
+.login-route .login-screen::before,
+.login-route .login-screen::after,
+.login-route .login-botanical {
+  display: none;
+}
+.login-route .login-card {
+  border-color: #e5ebe5;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 12px 36px rgb(21 61 39 / 8%);
+}
+.login-route .login-card__subtitle {
+  color: #536357;
+}
+.login-route .login-field__control {
+  border-radius: 10px;
+  background: #fff;
+}
+.login-route .login-development-note {
+  margin: -14px 0 18px;
+  padding: 10px 12px;
+  border-inline-start: 3px solid #e6bc1e;
+  border-radius: 5px;
+  color: #59665c;
+  background: #fbf8e9;
+  font-size: 11px;
+  line-height: 1.55;
+}
+.login-route .login-submit {
+  border-radius: 10px;
+  background: #0d482b;
+  box-shadow: none;
+}
 .login-form__status {
   margin: 0;
   color: #617568;
